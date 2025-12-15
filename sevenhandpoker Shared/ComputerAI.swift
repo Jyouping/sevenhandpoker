@@ -15,6 +15,8 @@ class ComputerAI {
     // MARK: - Singleton
 
     static let shared = ComputerAI()
+    
+    let humanPlayer: Int = 1
 
     private init() {}
 
@@ -201,7 +203,7 @@ class ComputerAI {
         // Random available column
         var available: [Int] = []
         for col in 0..<7 {
-            if DeckMgr.shared.getColumnSize(player: 2, col: col) == 0 {
+            if DeckMgr.shared.getColumnSize(player: humanPlayer, col: col) == 0 {
                 available.append(col)
             }
         }
@@ -214,7 +216,7 @@ class ComputerAI {
         var foundEmpty = false
 
         for col in 0..<7 {
-            if DeckMgr.shared.getColumnSize(player: 2, col: col) == 0 {
+            if DeckMgr.shared.getColumnSize(player: humanPlayer, col: col) == 0 {
                 bestCol = col
                 foundEmpty = true
                 break
@@ -233,7 +235,7 @@ class ComputerAI {
 
         for col in 0..<7 {
             // Skip if we already placed there
-            if DeckMgr.shared.getColumnSize(player: 2, col: col) > 0 {
+            if DeckMgr.shared.getColumnSize(player: humanPlayer, col: col) > 0 {
                 continue
             }
 

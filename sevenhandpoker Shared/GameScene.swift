@@ -65,8 +65,8 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
     private let slotSpacing: CGFloat = 120
 
     // Player positions
-    private let p1HandY: CGFloat = 90
-    private let p2HandY: CGFloat = 550
+    private let p1HandY: CGFloat = 80
+    private let p2HandY: CGFloat = 560
     private let p1PokerY: CGFloat = 220
     private let p2PokerY: CGFloat = 420
 
@@ -170,11 +170,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
         // AI selects cards
         computerAI.selectCards()
 
-        // Visual feedback - flip selected cards briefly
         let selected = deckMgr.getSelectedCards(player: 2)
-        for card in selected {
-            card.setFaceUp(true)
-        }
 
         showMessage("CPU plays \(selected.count) card(s)")
 
@@ -193,7 +189,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
     }
 
     private func onEnterPlayer2Placing() {
-        showPlaceButtons(forPlayer: 1)  // Player1 chooses where to place player2's cards
+        showPlaceButtons(forPlayer: 2)
         showMessage("Choose where to place CPU's cards")
     }
 
@@ -271,7 +267,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
             let coin = SKSpriteNode(imageNamed: "coin")
             coin.size = CGSize(width: 80, height: 80)
             coin.position = CGPoint(x: x, y: size.height / 2)
-            coin.zPosition = 5
+            coin.zPosition = 50
             coin.name = "coin_\(i)"
             addChild(coin)
             coinSprites.append(coin)
@@ -283,6 +279,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
         dealButton = createButton(text: "DEAL", color: .systemGreen)
         dealButton.position = CGPoint(x: size.width / 2, y: 50)
         dealButton.name = "dealButton"
+        dealButton.zPosition = 100
         addChild(dealButton)
 
         // Submit button
@@ -290,6 +287,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
         submitButton.position = CGPoint(x: size.width / 2 + 150, y: 50)
         submitButton.name = "submitButton"
         submitButton.isHidden = true
+        submitButton.zPosition = 100
         addChild(submitButton)
 
         // Sort button
@@ -297,16 +295,18 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
         sortButton.position = CGPoint(x: size.width / 2 - 150, y: 50)
         sortButton.name = "sortButton"
         sortButton.isHidden = true
+        sortButton.zPosition = 100
         addChild(sortButton)
 
         // Place buttons
         let startX: CGFloat = (size.width - 6 * slotSpacing) / 2
         for i in 0..<7 {
-            let btn = createButton(text: "\(i+1)", color: .systemPurple, size: CGSize(width: 60, height: 40))
-            btn.position = CGPoint(x: startX + CGFloat(i) * slotSpacing, y: size.height / 2)
+            let btn = SKSpriteNode(imageNamed: "placement_btn")
+            btn.size = CGSize(width: 80, height: 100)
+            btn.position = CGPoint(x: startX + CGFloat(i) * slotSpacing, y: p2PokerY)
             btn.name = "placeBtn_\(i)"
             btn.isHidden = true
-            btn.zPosition = 50
+            btn.zPosition = 100
             addChild(btn)
             placeButtons.append(btn)
         }
@@ -427,8 +427,10 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
         ]))
     }
 
+    //get card x based on its index
+    //todo: fix spacing
     private func getCardX(index: Int, total: Int) -> CGFloat {
-        let spacing: CGFloat = min(60, (size.width - 200) / CGFloat(total))
+        let spacing: CGFloat = min(50, (size.width - 150) / CGFloat(total))
         let totalWidth = CGFloat(total - 1) * spacing
         let startX = (size.width - totalWidth) / 2
         return startX + CGFloat(index) * spacing
@@ -512,13 +514,15 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
         print("Placing \(cardsPlaced) cards for Player \(player) to column \(col)")
 
         deckMgr.placeCards(selected, toColumn: col, player: player)
+        print("Column col: \(col), size \(deckMgr.getColumnSize(player: player, col: col))")
 
         // Animate cards to slot
         let slotX = (size.width - 6 * slotSpacing) / 2 + CGFloat(col) * slotSpacing
         let slotY = player == 1 ? p1PokerY : p2PokerY
 
         for (i, card) in selected.enumerated() {
-            let targetPos = CGPoint(x: slotX + CGFloat(i) * 8, y: slotY + CGFloat(i) * 5)
+            let deltaY: Double = player == 1 ? -9 : 9
+            let targetPos = CGPoint(x: slotX + CGFloat(i) * 3, y: slotY + CGFloat(i) * deltaY)
             card.setFaceUp(false)
             card.moveTo(position: targetPos, duration: 0.3)
             card.zPosition = CGFloat(20 + i)
@@ -627,7 +631,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
 
     private func moveCoin(col: Int, toPlayer player: PlayerType) {
         let coin = coinSprites[col]
-        let targetY: CGFloat = player == .player1 ? p1HandY + 50 : p2HandY - 50
+        let targetY: CGFloat = player == .player1 ? p1PokerY : p2PokerY
         coin.run(SKAction.moveTo(y: targetY, duration: 0.3))
         updateScores()
     }
