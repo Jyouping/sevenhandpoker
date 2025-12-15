@@ -47,8 +47,10 @@ enum GameState: Int {
     case dealing
     case player1Turn
     case player1Placing
+    case player1NewCard
     case player2Turn
     case player2Placing
+    case player2NewCard
     case comparing
     case checkWin
     case gameOver

@@ -21,6 +21,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
 
     // UI Elements
     private var backgroundNode: SKSpriteNode!
+    private var commonDeckNode: SKSpriteNode!
     private var slotNodes: [SKSpriteNode] = []
     private var placeButtons: [SKSpriteNode] = []
 
@@ -38,14 +39,14 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
     private var p2ScoreLabel: SKLabelNode!
 
     // Card layout
-    private let cardScale: CGFloat = 0.7
+    private let cardScale: CGFloat = 0.95
     private let cardWidth: CGFloat = 42
     private let cardHeight: CGFloat = 60
-    private let slotSpacing: CGFloat = 80
+    private let slotSpacing: CGFloat = 120
 
     // Player positions
-    private let p1HandY: CGFloat = 120
-    private let p2HandY: CGFloat = 520
+    private let p1HandY: CGFloat = 90
+    private let p2HandY: CGFloat = 550
     private let p1PokerY: CGFloat = 220
     private let p2PokerY: CGFloat = 420
 
@@ -54,7 +55,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
     // MARK: - Scene Setup
 
     class func newGameScene() -> GameScene {
-        let scene = GameScene(size: CGSize(width: 960, height: 640))
+        let scene = GameScene(size: CGSize(width: 1400, height: 640))
         scene.scaleMode = .aspectFit
         return scene
     }
@@ -67,6 +68,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
         setupCoins()
         setupButtons()
         setupLabels()
+        setupCommonDeck()
 
         showMessage("Tap DEAL to start")
     }
@@ -81,7 +83,23 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
         backgroundNode.size = size
         addChild(backgroundNode)
     }
+    
+    func setupCommonDeck() {
+        commonDeckNode = SKSpriteNode(imageNamed: "cardback")
+        commonDeckNode.position = CGPoint(x: size.width / 2 - 500, y: size.height / 2)
+        commonDeckNode.zPosition = 5
+        let slot = SKSpriteNode(imageNamed: "slot")
+        slot.size = CGSize(width: 100, height: 125)
+        slot.position = CGPoint(x: commonDeckNode.position.x, y: commonDeckNode.position.y)
+        slot.zPosition = 1
+        slot.name = "slot_commonDeck"
+        addChild(slot)
+        slotNodes.append(slot)
 
+        addChild(commonDeckNode)
+    }
+
+    
     func setupSlots() {
         // Create 14 slots (7 for each player)
         let startX: CGFloat = (size.width - 6 * slotSpacing) / 2
@@ -93,7 +111,8 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
             let x = startX + CGFloat(col) * slotSpacing
             let y = row == 0 ? p2PokerY : p1PokerY
 
-            let slot = SKSpriteNode(color: SKColor(white: 1, alpha: 0.1), size: CGSize(width: 50, height: 70))
+            let slot = SKSpriteNode(imageNamed: "slot")
+            slot.size = CGSize(width: 90, height: 120)
             slot.position = CGPoint(x: x, y: y)
             slot.zPosition = 1
             slot.name = "slot_\(i)"
@@ -108,8 +127,8 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
         for i in 0..<7 {
             let x = startX + CGFloat(i) * slotSpacing
             let coin = SKSpriteNode(imageNamed: "coin")
+            coin.size = CGSize(width: 80, height: 80)
             coin.position = CGPoint(x: x, y: size.height / 2)
-            coin.setScale(0.6)
             coin.zPosition = 5
             coin.name = "coin_\(i)"
             addChild(coin)
@@ -222,34 +241,35 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
         dealButton.isHidden = true
 
         var delay: TimeInterval = 0
-        let dealInterval: TimeInterval = 0.1
+        let dealInterval: TimeInterval = 0.2
 
-        // Deal 13 cards to each player
-        for i in 0..<13 {
+        // Deal 14 cards to each player
+        for i in 0..<14 {
             // Player 1 card (face up)
             let p1Card = deckMgr.drawCardSprite(owner: 1, faceUp: true)
             p1Card.setScale(cardScale)
-            p1Card.position = CGPoint(x: size.width / 2, y: size.height / 2)
-            p1Card.zPosition = CGFloat(10 + i)
+            p1Card.position = commonDeckNode.position
+            p1Card.zPosition = CGFloat(CGFloat(10))
             p1Card.delegate = self
             addChild(p1Card)
 
-            let p1TargetX = getCardX(index: i, total: 13)
+            let p1TargetX = getCardX(index: i, total: 14)
             let p1Move = SKAction.sequence([
                 SKAction.wait(forDuration: delay),
-                SKAction.move(to: CGPoint(x: p1TargetX, y: p1HandY), duration: 0.2)
+                SKAction.move(to: CGPoint(x: p1TargetX, y: p1HandY), duration: 0.2),
+                SKAction.run{ p1Card.zPosition = CGFloat(10 + i) }
             ])
             p1Card.run(p1Move)
 
             // Player 2 card (face down)
             let p2Card = deckMgr.drawCardSprite(owner: 2, faceUp: false)
             p2Card.setScale(cardScale)
-            p2Card.position = CGPoint(x: size.width / 2, y: size.height / 2)
+            p2Card.position = commonDeckNode.position
             p2Card.zPosition = CGFloat(10 + i)
             p2Card.delegate = self
             addChild(p2Card)
 
-            let p2TargetX = getCardX(index: i, total: 13)
+            let p2TargetX = getCardX(index: i, total: 14)
             let p2Move = SKAction.sequence([
                 SKAction.wait(forDuration: delay + 0.05),
                 SKAction.move(to: CGPoint(x: p2TargetX, y: p2HandY), duration: 0.2)
@@ -269,7 +289,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
     }
 
     func getCardX(index: Int, total: Int) -> CGFloat {
-        let spacing: CGFloat = min(50, (size.width - 200) / CGFloat(total))
+        let spacing: CGFloat = min(60, (size.width - 200) / CGFloat(total))
         let totalWidth = CGFloat(total - 1) * spacing
         let startX = (size.width - totalWidth) / 2
         return startX + CGFloat(index) * spacing
@@ -452,6 +472,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
 
         let selected = deckMgr.removeSelectedFromHand(player: player)
         let cardsPlaced = selected.count
+        print("Place Player \(player). \(cardsPlaced) cards to column \(col)")
         deckMgr.placeCards(selected, toColumn: col, player: player)
 
         // Animate cards to slot
@@ -460,10 +481,11 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
 
         for (i, card) in selected.enumerated() {
             let targetPos = CGPoint(x: slotX + CGFloat(i) * 8, y: slotY + CGFloat(i) * 5)
+            card.setFaceUp(false)
             card.moveTo(position: targetPos, duration: 0.3)
             card.zPosition = CGFloat(20 + i)
             if player == 2 {
-                card.setFaceUp(true)
+                card.setFaceUp(false)
             }
         }
 
@@ -471,7 +493,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
         run(SKAction.sequence([
             SKAction.wait(forDuration: 0.4),
             SKAction.run { [weak self] in
-                self?.drawNewCards(forPlayer: player, count: cardsPlaced)
+                self?.drawNewCards(forPlayer: player, count: 3)
             }
         ]))
 
@@ -488,14 +510,17 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
         let hand = player == 1 ? deckMgr.player1Hand : deckMgr.player2Hand
         let faceUp = player == 1  // Player 1's cards are face up, player 2's are face down
 
+        rearrangeHand(player: player)
+        
         var cardsDrawn = 0
-        for _ in 0..<count {
+        for i in 0..<count {
             guard deckMgr.canDrawCard() else { break }
 
             let newCard = deckMgr.drawCardSprite(owner: player, faceUp: faceUp)
             newCard.setScale(cardScale)
-            newCard.position = CGPoint(x: size.width / 2, y: size.height / 2)
-            newCard.zPosition = CGFloat(10 + hand.count)
+            newCard.position = CGPoint(x: getCardX(index: i + hand.count, total: deckMgr.player1Hand.count + 3),
+                                       y: player == 1 ? p1HandY : p2HandY)
+            newCard.zPosition = CGFloat(10 + hand.count + i + 1)
             newCard.delegate = self
             addChild(newCard)
 
@@ -514,7 +539,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
 
         for (i, card) in hand.enumerated() {
             let x = getCardX(index: i, total: hand.count)
-            card.moveTo(position: CGPoint(x: x, y: y), duration: 0.2)
+            card.moveTo(position: CGPoint(x: x, y: card.position.y), duration: 0.2)
         }
     }
 
@@ -727,5 +752,8 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
 
     override func update(_ currentTime: TimeInterval) {
         // Game loop updates if needed
+    }
+    private func gameStateMachine() {
+        
     }
 }
