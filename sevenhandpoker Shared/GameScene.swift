@@ -46,6 +46,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
     private var commonDeckNode: SKSpriteNode!
     private var slotNodes: [SKSpriteNode] = []
     private var placeButtons: [SKSpriteNode] = []
+    private var headNodes: [SKSpriteNode] = []
 
     // Confirmation view
     private var confirmationView: DeckConfirmationView?
@@ -90,6 +91,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
         setupButtons()
         setupLabels()
         setupCommonDeck()
+        setupHeads()
 
         currentPhase = .idle
     }
@@ -120,6 +122,23 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
             onEnterCheckingWin()
         case .gameOver:
             onEnterGameOver()
+        }
+    }
+    
+    private func setupHeads() {
+        commonDeckNode.position = CGPoint(x: size.width / 2 - 500, y: size.height / 2)
+        commonDeckNode.zPosition = 5
+        for i in 0..<2 {
+            let headNode = HeadFigure(player: i + 1)
+            // [head[i] setClickDelegate:self]; ??
+            headNode.zPosition = 100
+            if (i == 0) {
+                headNode.position = CGPoint(x: 200, y: 100)
+            } else {
+                headNode.position = CGPoint(x: 1200, y: 550)
+            }
+            headNodes.append(headNode)
+            addChild(headNode)
         }
     }
 
