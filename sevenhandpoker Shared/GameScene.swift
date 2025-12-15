@@ -22,7 +22,7 @@ enum GamePhase {
     case gameOver           // Game ended
 }
 
-class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
+class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigureDelegate {
 
     // MARK: - Properties
 
@@ -126,13 +126,12 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
     }
     
     private func setupHeads() {
-        commonDeckNode.position = CGPoint(x: size.width / 2 - 500, y: size.height / 2)
-        commonDeckNode.zPosition = 5
         for i in 0..<2 {
             let headNode = HeadFigure(player: i + 1)
-            // [head[i] setClickDelegate:self]; ??
             headNode.zPosition = 100
             if (i == 0) {
+                // Player 1 head - set delegate for click handling
+                headNode.delegate = self
                 headNode.position = CGPoint(x: 200 - HeadFigure.slide_in_width, y: 100)
             } else {
                 headNode.position = CGPoint(x: 1200 + HeadFigure.slide_in_width, y: 550)
@@ -169,7 +168,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
         headNodes[0].changeFigure(HeadFigure.FigureState.normal)
 
         sortButton.isHidden = false
-        submitButton.isHidden = false
+        submitButton.isHidden = true
         showMessage("Select 1-5 cards")
     }
 
@@ -314,7 +313,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
         dealButton.zPosition = 100
         addChild(dealButton)
 
-        // Submit button
+        // Submit button, only used for debugging purpose, will not be show anywhere
         submitButton = createButton(text: "SUBMIT", color: .systemBlue)
         submitButton.position = CGPoint(x: size.width / 2 + 150, y: 50)
         submitButton.name = "submitButton"
@@ -511,7 +510,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
         confirmationView = nil
 
         // Return to selecting
-        submitButton.isHidden = false
+        submitButton.isHidden = true
         sortButton.isHidden = false
         currentPhase = .player1Selecting
     }
@@ -588,7 +587,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
         let faceUp = player == 1
         let y = player == 1 ? p1HandY : p2HandY
 
-        rearrangeHand(player: player)
+        rearrangeHand(player: player, resetY: false)
 
         var cardsDrawn = 0
         for i in 0..<count {
@@ -604,18 +603,19 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
             cardsDrawn += 1
         }
 
+        //Need to reset evey card's y index when draw new card
         if cardsDrawn > 0 {
-            rearrangeHand(player: player)
+            rearrangeHand(player: player, resetY: true)
         }
     }
 
-    private func rearrangeHand(player: Int) {
+    private func rearrangeHand(player: Int, resetY: Bool = false) {
         let hand = player == 1 ? deckMgr.player1Hand : deckMgr.player2Hand
-        let y = player == 1 ? p1HandY : p2HandY
+        let newY = player == 1 ? p1HandY : p2HandY
 
         for (i, card) in hand.enumerated() {
             let x = getCardX(index: i, total: hand.count)
-            card.moveTo(position: CGPoint(x: x, y: y), duration: 0.2)
+            card.moveTo(position: CGPoint(x: x, y: resetY ? newY : card.position.y), duration: 0.2)
             card.zPosition = CGFloat(10 + i)
         }
     }
@@ -792,8 +792,19 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
         guard currentPhase == .player1Selecting else { return }
         let selectedCount = deckMgr.getSelectedCards(player: 1).count
         let cantSubmit: Bool = (selectedCount == 0 || selectedCount > 5)
-        submitButton.isHidden = cantSubmit
+        submitButton.isHidden = true
         headNodes[0].showSpin(!cantSubmit)
+    }
+
+    // MARK: - HeadFigureDelegate
+
+    func headFigureClicked(_ headFigure: HeadFigure) {
+        // Only respond when in player1Selecting phase and it's player1's head
+        guard currentPhase == .player1Selecting,
+              headFigure.getPlayer() == 1 else { return }
+
+        player1Submit()
+        headFigure.stopSpinAnimation()
     }
 
     // MARK: - Touch Handling
