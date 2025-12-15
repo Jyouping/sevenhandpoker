@@ -19,6 +19,7 @@
 				Card.swift,
 				CardSprite.swift,
 				Common.swift,
+				ComputerAI.swift,
 				DeckConfirmationView.swift,
 				DeckMgr.swift,
 				GameScene.sks,

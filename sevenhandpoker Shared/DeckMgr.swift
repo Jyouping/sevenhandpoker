@@ -138,7 +138,7 @@ class DeckMgr {
         }
     }
 
-    func getDeckSize(player: Int, col: Int) -> Int {
+    func getColumnSize(player: Int, col: Int) -> Int {
         if player == 1 {
             return p1Poker[col].count
         } else {

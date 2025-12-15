@@ -2,18 +2,40 @@
 //  GameScene.swift
 //  Seven Hand Poker
 //
-//  Main game scene using SpriteKit
+//  Main game scene using SpriteKit with State Machine pattern
 //
 
 import SpriteKit
+
+// MARK: - Game State Machine
+
+enum GamePhase {
+    case idle               // Waiting to start
+    case dealing            // Dealing cards
+    case player1Selecting   // Player1 selecting cards
+    case player1Confirming  // Player1 confirming selection
+    case player1Waiting     // Waiting for AI to place player1's cards
+    case player2Selecting   // AI selecting cards
+    case player2Placing     // Player1 placing player2's cards
+    case comparing          // Comparing cards in a column
+    case checkingWin        // Checking win condition
+    case gameOver           // Game ended
+}
 
 class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
 
     // MARK: - Properties
 
     private var deckMgr: DeckMgr!
-    private var gameState: GameState = .idle
-    private var currentPlayer: PlayerType = .player1
+    private var computerAI: ComputerAI!
+
+    // State Machine
+    private var currentPhase: GamePhase = .idle {
+        didSet {
+            handlePhaseChange(from: oldValue, to: currentPhase)
+        }
+    }
+    private var pendingColumn: Int = -1  // Column waiting to be compared
 
     // Coin ownership: nil = unclaimed, player1/player2 = owned
     private var coinOwners: [PlayerType?] = Array(repeating: nil, count: 7)
@@ -38,10 +60,8 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
     private var p1ScoreLabel: SKLabelNode!
     private var p2ScoreLabel: SKLabelNode!
 
-    // Card layout
+    // Card layout constants
     private let cardScale: CGFloat = 0.95
-    private let cardWidth: CGFloat = 42
-    private let cardHeight: CGFloat = 60
     private let slotSpacing: CGFloat = 120
 
     // Player positions
@@ -62,6 +82,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
 
     override func didMove(to view: SKView) {
         deckMgr = DeckMgr.shared
+        computerAI = ComputerAI.shared
 
         setupBackground()
         setupSlots()
@@ -70,27 +91,150 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
         setupLabels()
         setupCommonDeck()
 
+        currentPhase = .idle
+    }
+
+    // MARK: - State Machine Handler
+
+    private func handlePhaseChange(from oldPhase: GamePhase, to newPhase: GamePhase) {
+        print("Phase: \(oldPhase) -> \(newPhase)")
+
+        switch newPhase {
+        case .idle:
+            onEnterIdle()
+        case .dealing:
+            onEnterDealing()
+        case .player1Selecting:
+            onEnterPlayer1Selecting()
+        case .player1Confirming:
+            break // Handled by showConfirmationView
+        case .player1Waiting:
+            onEnterPlayer1Waiting()
+        case .player2Selecting:
+            onEnterPlayer2Selecting()
+        case .player2Placing:
+            onEnterPlayer2Placing()
+        case .comparing:
+            onEnterComparing()
+        case .checkingWin:
+            onEnterCheckingWin()
+        case .gameOver:
+            onEnterGameOver()
+        }
+    }
+
+    // MARK: - State Entry Handlers
+
+    private func onEnterIdle() {
         showMessage("Tap DEAL to start")
+        dealButton.isHidden = false
+        submitButton.isHidden = true
+        sortButton.isHidden = true
+        hidePlaceButtons()
+    }
+
+    private func onEnterDealing() {
+        dealButton.isHidden = true
+        dealCards()
+    }
+
+    private func onEnterPlayer1Selecting() {
+        // Enable player1's cards for selection
+        for card in deckMgr.player1Hand {
+            card.setEnabled(true)
+        }
+
+        sortButton.isHidden = false
+        submitButton.isHidden = false
+        showMessage("Select 1-5 cards")
+    }
+
+    private func onEnterPlayer1Waiting() {
+        // Disable player1's cards
+        for card in deckMgr.player1Hand {
+            card.setEnabled(false)
+        }
+
+        showMessage("CPU choosing position...")
+
+        // AI places player1's cards
+        run(SKAction.sequence([
+            SKAction.wait(forDuration: 1.0),
+            SKAction.run { [weak self] in
+                self?.aiPlacePlayer1Cards()
+            }
+        ]))
+    }
+
+    private func onEnterPlayer2Selecting() {
+        // AI selects cards
+        computerAI.selectCards()
+
+        // Visual feedback - flip selected cards briefly
+        let selected = deckMgr.getSelectedCards(player: 2)
+        for card in selected {
+            card.setFaceUp(true)
+        }
+
+        showMessage("CPU plays \(selected.count) card(s)")
+
+        // Wait then proceed to player placing
+        run(SKAction.sequence([
+            SKAction.wait(forDuration: 1.5),
+            SKAction.run { [weak self] in
+                guard let self = self else { return }
+                // Flip cards back
+                for card in selected {
+                    card.setFaceUp(false)
+                }
+                self.currentPhase = .player2Placing
+            }
+        ]))
+    }
+
+    private func onEnterPlayer2Placing() {
+        showPlaceButtons(forPlayer: 1)  // Player1 chooses where to place player2's cards
+        showMessage("Choose where to place CPU's cards")
+    }
+
+    private func onEnterComparing() {
+        guard pendingColumn >= 0 else {
+            proceedToNextTurn()
+            return
+        }
+
+        compareColumn(pendingColumn)
+    }
+
+    private func onEnterCheckingWin() {
+        checkWinCondition()
+    }
+
+    private func onEnterGameOver() {
+        dealButton.isHidden = false
+        submitButton.isHidden = true
+        sortButton.isHidden = true
+        hidePlaceButtons()
     }
 
     // MARK: - Setup Methods
 
-    func setupBackground() {
+    private func setupBackground() {
         backgroundNode = SKSpriteNode(imageNamed: "boardBG")
         backgroundNode.position = CGPoint(x: size.width / 2, y: size.height / 2)
         backgroundNode.zPosition = -1
-        // Scale to fill entire screen
         backgroundNode.size = size
         addChild(backgroundNode)
     }
-    
-    func setupCommonDeck() {
+
+    private func setupCommonDeck() {
         commonDeckNode = SKSpriteNode(imageNamed: "cardback")
         commonDeckNode.position = CGPoint(x: size.width / 2 - 500, y: size.height / 2)
         commonDeckNode.zPosition = 5
+
         let slot = SKSpriteNode(imageNamed: "slot")
         slot.size = CGSize(width: 100, height: 125)
-        slot.position = CGPoint(x: commonDeckNode.position.x, y: commonDeckNode.position.y)
+        slot.position = commonDeckNode.position
         slot.zPosition = 1
         slot.name = "slot_commonDeck"
         addChild(slot)
@@ -99,9 +243,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
         addChild(commonDeckNode)
     }
 
-    
-    func setupSlots() {
-        // Create 14 slots (7 for each player)
+    private func setupSlots() {
         let startX: CGFloat = (size.width - 6 * slotSpacing) / 2
 
         for i in 0..<14 {
@@ -121,7 +263,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
         }
     }
 
-    func setupCoins() {
+    private func setupCoins() {
         let startX: CGFloat = (size.width - 6 * slotSpacing) / 2
 
         for i in 0..<7 {
@@ -136,7 +278,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
         }
     }
 
-    func setupButtons() {
+    private func setupButtons() {
         // Deal button
         dealButton = createButton(text: "DEAL", color: .systemGreen)
         dealButton.position = CGPoint(x: size.width / 2, y: 50)
@@ -157,7 +299,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
         sortButton.isHidden = true
         addChild(sortButton)
 
-        // Place buttons (for choosing column)
+        // Place buttons
         let startX: CGFloat = (size.width - 6 * slotSpacing) / 2
         for i in 0..<7 {
             let btn = createButton(text: "\(i+1)", color: .systemPurple, size: CGSize(width: 60, height: 40))
@@ -170,7 +312,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
         }
     }
 
-    func setupLabels() {
+    private func setupLabels() {
         messageLabel = SKLabelNode(fontNamed: "MarkerFelt-Wide")
         messageLabel.fontSize = 24
         messageLabel.fontColor = .white
@@ -195,7 +337,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
         addChild(p2ScoreLabel)
     }
 
-    func createButton(text: String, color: UIColor, size: CGSize = CGSize(width: 100, height: 44)) -> SKSpriteNode {
+    private func createButton(text: String, color: UIColor, size: CGSize = CGSize(width: 100, height: 44)) -> SKSpriteNode {
         let button = SKSpriteNode(color: color, size: size)
         button.zPosition = 20
 
@@ -212,8 +354,8 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
 
     // MARK: - Game Flow
 
-    func startNewGame() {
-        // Reset everything
+    private func startNewGame() {
+        // Reset deck manager
         deckMgr.initDeck()
         coinOwners = Array(repeating: nil, count: 7)
 
@@ -225,21 +367,18 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
             for card in deckMgr.p2Poker[col] { card.removeFromParent() }
         }
 
-        // Reset coins position
+        // Reset coins
         let startX: CGFloat = (size.width - 6 * slotSpacing) / 2
         for i in 0..<7 {
             coinSprites[i].position = CGPoint(x: startX + CGFloat(i) * slotSpacing, y: size.height / 2)
             coinSprites[i].alpha = 1.0
         }
 
-        // Deal cards
-        dealCards()
+        updateScores()
+        currentPhase = .dealing
     }
 
-    func dealCards() {
-        gameState = .dealing
-        dealButton.isHidden = true
-
+    private func dealCards() {
         var delay: TimeInterval = 0
         let dealInterval: TimeInterval = 0.2
 
@@ -249,7 +388,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
             let p1Card = deckMgr.drawCardSprite(owner: 1, faceUp: true)
             p1Card.setScale(cardScale)
             p1Card.position = commonDeckNode.position
-            p1Card.zPosition = CGFloat(CGFloat(10))
+            p1Card.zPosition = CGFloat(10)
             p1Card.delegate = self
             addChild(p1Card)
 
@@ -257,7 +396,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
             let p1Move = SKAction.sequence([
                 SKAction.wait(forDuration: delay),
                 SKAction.move(to: CGPoint(x: p1TargetX, y: p1HandY), duration: 0.2),
-                SKAction.run{ p1Card.zPosition = CGFloat(10 + i) }
+                SKAction.run { p1Card.zPosition = CGFloat(10 + i) }
             ])
             p1Card.run(p1Move)
 
@@ -283,111 +422,43 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
         run(SKAction.sequence([
             SKAction.wait(forDuration: delay + 0.5),
             SKAction.run { [weak self] in
-                self?.startPlayer1Turn()
+                self?.currentPhase = .player1Selecting
             }
         ]))
     }
 
-    func getCardX(index: Int, total: Int) -> CGFloat {
+    private func getCardX(index: Int, total: Int) -> CGFloat {
         let spacing: CGFloat = min(60, (size.width - 200) / CGFloat(total))
         let totalWidth = CGFloat(total - 1) * spacing
         let startX = (size.width - totalWidth) / 2
         return startX + CGFloat(index) * spacing
     }
 
-    func startPlayer1Turn() {
-        gameState = .player1Turn
-        currentPlayer = .player1
+    // MARK: - Player 1 Actions
 
-        // Enable player1's cards
-        for card in deckMgr.player1Hand {
-            card.setEnabled(true)
-        }
-
-        sortButton.isHidden = false
-        submitButton.isHidden = false
-        showMessage("Select 1-5 cards")
-    }
-
-    func startPlayer2Turn() {
-        gameState = .player2Turn
-        currentPlayer = .player2
-
-        // Simple AI: select random 1-3 cards
-        let hand = deckMgr.player2Hand
-        let selectCount = min(hand.count, Int.random(in: 1...3))
-
-        // AI strategy: prefer pairs
-        aiSelectCards(count: selectCount)
-
-        // Wait then proceed to placing
-        run(SKAction.sequence([
-            SKAction.wait(forDuration: 1.0),
-            SKAction.run { [weak self] in
-                self?.player2SubmitCards()
-            }
-        ]))
-    }
-
-    func aiSelectCards(count: Int) {
-        let hand = deckMgr.player2Hand
-        guard !hand.isEmpty else { return }
-
-        // Look for pairs first
-        var counts: [Int: [CardSprite]] = [:]
-        for card in hand {
-            counts[card.getNumber(), default: []].append(card)
-        }
-
-        var selected: [CardSprite] = []
-
-        // Select pairs/trips if available
-        for (_, cards) in counts.sorted(by: { $0.key > $1.key }) {
-            if cards.count >= 2 && selected.count < count {
-                for card in cards.prefix(min(cards.count, count - selected.count)) {
-                    card.setSelected(true)
-                    selected.append(card)
-                }
-                if selected.count >= count { break }
-            }
-        }
-
-        // Fill remaining with high cards
-        if selected.count < count {
-            let remaining = hand.filter { !$0.getSelected() }.sorted { $0.getNumber() > $1.getNumber() }
-            for card in remaining.prefix(count - selected.count) {
-                card.setSelected(true)
-            }
-        }
-    }
-
-    func player1SubmitCards() {
+    private func player1Submit() {
         let selected = deckMgr.getSelectedCards(player: 1)
         guard selected.count >= 1 && selected.count <= 5 else {
             showMessage("Select 1-5 cards!")
             return
         }
 
-        // Show confirmation view
+        currentPhase = .player1Confirming
         showConfirmationView(for: selected)
     }
 
-    func showConfirmationView(for cards: [CardSprite]) {
-        // Remove existing confirmation view if any
+    private func showConfirmationView(for cards: [CardSprite]) {
         confirmationView?.removeFromParent()
 
-        // Create new confirmation view
         let confirmation = DeckConfirmationView(sceneSize: size)
         confirmation.delegate = self
 
-        // Calculate card type
         let cardType = deckMgr.getBestOfCards(cards)
         confirmation.showCards(cards, cardType: cardType)
 
         addChild(confirmation)
         confirmationView = confirmation
 
-        // Hide buttons while confirmation is showing
         submitButton.isHidden = true
         sortButton.isHidden = true
     }
@@ -395,84 +466,51 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
     // MARK: - DeckConfirmationDelegate
 
     func confirmationDidConfirm() {
-        // Remove confirmation view
         confirmationView?.removeFromParent()
         confirmationView = nil
 
-        // Proceed with submission
-        gameState = .player1Placing
-
-        // Disable cards
-        for card in deckMgr.player1Hand {
-            card.setEnabled(false)
-        }
-
-        // Show place buttons for empty columns where player2 hasn't placed
-        showPlaceButtons(forPlayer: 2)  // Player2 places player1's cards
-        showMessage("CPU choosing position...")
-
-        // AI chooses position
-        run(SKAction.sequence([
-            SKAction.wait(forDuration: 1.0),
-            SKAction.run { [weak self] in
-                self?.aiPlaceCards(forPlayer: 1)
-            }
-        ]))
+        currentPhase = .player1Waiting
     }
 
     func confirmationDidCancel() {
-        // Remove confirmation view
         confirmationView?.removeFromParent()
         confirmationView = nil
 
-        // Show buttons again
+        // Return to selecting
         submitButton.isHidden = false
         sortButton.isHidden = false
-
-        // Player can continue selecting
-        showMessage("Select 1-5 cards")
+        currentPhase = .player1Selecting
     }
 
-    func player2SubmitCards() {
-        gameState = .player2Placing
-        showPlaceButtons(forPlayer: 1)  // Player1 places player2's cards
-        showMessage("Choose where to place CPU's cards")
+    // MARK: - AI Actions
+
+    private func aiPlacePlayer1Cards() {
+        let col = computerAI.chooseColumnForOpponent()
+        placeCardsToColumn(player: 1, col: col)
     }
 
-    func showPlaceButtons(forPlayer placer: Int) {
+    // MARK: - Card Placement
+
+    private func showPlaceButtons(forPlayer placer: Int) {
         for i in 0..<7 {
-            // Show button only if the placer hasn't already placed there
-            let placerDeckSize = deckMgr.getDeckSize(player: placer, col: i)
+            let placerDeckSize = deckMgr.getColumnSize(player: placer, col: i)
             placeButtons[i].isHidden = (placerDeckSize > 0)
         }
     }
 
-    func hidePlaceButtons() {
+    private func hidePlaceButtons() {
         for btn in placeButtons {
             btn.isHidden = true
         }
     }
 
-    func aiPlaceCards(forPlayer player: Int) {
-        // AI chooses worst column for opponent
-        var bestCol = 0
-
-        for i in 0..<7 {
-            if deckMgr.getDeckSize(player: 2, col: i) == 0 {
-                bestCol = i
-                break
-            }
-        }
-
-        placeCardsToColumn(player: player, col: bestCol)
-    }
-
-    func placeCardsToColumn(player: Int, col: Int) {
+    private func placeCardsToColumn(player: Int, col: Int) {
         hidePlaceButtons()
 
         let selected = deckMgr.removeSelectedFromHand(player: player)
         let cardsPlaced = selected.count
-        print("Place Player \(player). \(cardsPlaced) cards to column \(col)")
+        print("Placing \(cardsPlaced) cards for Player \(player) to column \(col)")
+
         deckMgr.placeCards(selected, toColumn: col, player: player)
 
         // Animate cards to slot
@@ -484,12 +522,9 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
             card.setFaceUp(false)
             card.moveTo(position: targetPos, duration: 0.3)
             card.zPosition = CGFloat(20 + i)
-            if player == 2 {
-                card.setFaceUp(false)
-            }
         }
 
-        // Draw new cards to replace the ones placed
+        // Draw new cards
         run(SKAction.sequence([
             SKAction.wait(forDuration: 0.4),
             SKAction.run { [weak self] in
@@ -497,67 +532,68 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
             }
         ]))
 
-        // Check if column is complete
+        // Check column completion
         run(SKAction.sequence([
             SKAction.wait(forDuration: 0.8),
             SKAction.run { [weak self] in
-                self?.checkColumnAndProceed(col: col)
+                guard let self = self else { return }
+                if self.deckMgr.isColumnFull(col: col) {
+                    self.pendingColumn = col
+                    self.currentPhase = .comparing
+                } else {
+                    self.proceedToNextTurn()
+                }
             }
         ]))
     }
 
-    func drawNewCards(forPlayer player: Int, count: Int) {
+    private func drawNewCards(forPlayer player: Int, count: Int) {
         let hand = player == 1 ? deckMgr.player1Hand : deckMgr.player2Hand
-        let faceUp = player == 1  // Player 1's cards are face up, player 2's are face down
+        let faceUp = player == 1
+        let y = player == 1 ? p1HandY : p2HandY
 
         rearrangeHand(player: player)
-        
+
         var cardsDrawn = 0
         for i in 0..<count {
             guard deckMgr.canDrawCard() else { break }
 
             let newCard = deckMgr.drawCardSprite(owner: player, faceUp: faceUp)
             newCard.setScale(cardScale)
-            newCard.position = CGPoint(x: getCardX(index: i + hand.count, total: deckMgr.player1Hand.count + 3),
-                                       y: player == 1 ? p1HandY : p2HandY)
-            newCard.zPosition = CGFloat(10 + hand.count + i + 1)
+            newCard.position = commonDeckNode.position
+            newCard.zPosition = CGFloat(10 + hand.count + i)
             newCard.delegate = self
             addChild(newCard)
 
             cardsDrawn += 1
         }
 
-        // Rearrange hand with new cards
         if cardsDrawn > 0 {
             rearrangeHand(player: player)
         }
     }
 
-    func rearrangeHand(player: Int) {
+    private func rearrangeHand(player: Int) {
         let hand = player == 1 ? deckMgr.player1Hand : deckMgr.player2Hand
         let y = player == 1 ? p1HandY : p2HandY
 
         for (i, card) in hand.enumerated() {
             let x = getCardX(index: i, total: hand.count)
-            card.moveTo(position: CGPoint(x: x, y: card.position.y), duration: 0.2)
+            card.moveTo(position: CGPoint(x: x, y: y), duration: 0.2)
+            card.zPosition = CGFloat(10 + i)
         }
     }
 
-    func checkColumnAndProceed(col: Int) {
-        // Check if column is now complete (both players placed)
-        if deckMgr.isColumnFull(col: col) {
-            compareColumn(col)
-        } else {
-            proceedToNextTurn()
-        }
-    }
+    // MARK: - Comparison & Win Check
 
-    func compareColumn(_ col: Int) {
-        gameState = .comparing
-
+    private func compareColumn(_ col: Int) {
         let winner = deckMgr.compareColumn(col)
         let p1Cards = deckMgr.getPokerDeck(player: 1, col: col)
         let p2Cards = deckMgr.getPokerDeck(player: 2, col: col)
+
+        // Reveal all cards in column
+        for card in p1Cards { card.setFaceUp(true) }
+        for card in p2Cards { card.setFaceUp(true) }
 
         let p1Type = deckMgr.getBestOfCards(p1Cards)
         let p2Type = deckMgr.getBestOfCards(p2Cards)
@@ -580,24 +616,23 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
 
         showMessage(message)
 
-        // Check for game over
         run(SKAction.sequence([
             SKAction.wait(forDuration: 1.5),
             SKAction.run { [weak self] in
-                self?.checkGameOver()
+                self?.pendingColumn = -1
+                self?.currentPhase = .checkingWin
             }
         ]))
     }
 
-    func moveCoin(col: Int, toPlayer player: PlayerType) {
+    private func moveCoin(col: Int, toPlayer player: PlayerType) {
         let coin = coinSprites[col]
         let targetY: CGFloat = player == .player1 ? p1HandY + 50 : p2HandY - 50
-
         coin.run(SKAction.moveTo(y: targetY, duration: 0.3))
         updateScores()
     }
 
-    func updateScores() {
+    private func updateScores() {
         let p1Score = coinOwners.filter { $0 == .player1 }.count
         let p2Score = coinOwners.filter { $0 == .player2 }.count
 
@@ -605,11 +640,11 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
         p2ScoreLabel.text = "CPU: \(p2Score)"
     }
 
-    func checkGameOver() {
+    private func checkWinCondition() {
         let p1Score = coinOwners.filter { $0 == .player1 }.count
         let p2Score = coinOwners.filter { $0 == .player2 }.count
 
-        // Win condition: 4 coins or 3 consecutive
+        // Check consecutive wins
         var p1Consecutive = 0, p2Consecutive = 0
         var maxP1Consecutive = 0, maxP2Consecutive = 0
 
@@ -628,21 +663,20 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
             }
         }
 
+        // Win conditions: 4 coins or 3 consecutive
         if p1Score >= 4 || maxP1Consecutive >= 3 {
-            gameState = .gameOver
             showMessage("YOU WIN!")
-            showDealButton()
+            currentPhase = .gameOver
             return
         }
 
         if p2Score >= 4 || maxP2Consecutive >= 3 {
-            gameState = .gameOver
             showMessage("CPU WINS!")
-            showDealButton()
+            currentPhase = .gameOver
             return
         }
 
-        // Check if all columns are filled
+        // Check if all columns filled
         var allFilled = true
         for i in 0..<7 {
             if !deckMgr.isColumnFull(col: i) {
@@ -652,7 +686,6 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
         }
 
         if allFilled {
-            gameState = .gameOver
             if p1Score > p2Score {
                 showMessage("YOU WIN! (\(p1Score) - \(p2Score))")
             } else if p2Score > p1Score {
@@ -660,47 +693,48 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
             } else {
                 showMessage("TIE GAME!")
             }
-            showDealButton()
+            currentPhase = .gameOver
             return
         }
 
         proceedToNextTurn()
     }
 
-    func proceedToNextTurn() {
-        // Check if game should end (no more cards to play)
+    private func proceedToNextTurn() {
         let p1HandEmpty = deckMgr.player1Hand.isEmpty
         let p2HandEmpty = deckMgr.player2Hand.isEmpty
-        let noMoreCards = !deckMgr.canDrawCard()
 
-        if (p1HandEmpty && p2HandEmpty) || (noMoreCards && p1HandEmpty && p2HandEmpty) {
-            // Force check game over
-            checkGameOver()
+        if p1HandEmpty && p2HandEmpty {
+            currentPhase = .checkingWin
             return
         }
 
-        if currentPlayer == .player1 {
-            if !deckMgr.player2Hand.isEmpty {
-                startPlayer2Turn()
+        // Alternate turns based on current phase
+        if currentPhase == .player1Waiting || currentPhase == .comparing || currentPhase == .checkingWin {
+            if !p2HandEmpty {
+                currentPhase = .player2Selecting
+            } else if !p1HandEmpty {
+                currentPhase = .player1Selecting
             } else {
-                startPlayer1Turn()
+                currentPhase = .checkingWin
+            }
+        } else if currentPhase == .player2Placing {
+            if !p1HandEmpty {
+                currentPhase = .player1Selecting
+            } else if !p2HandEmpty {
+                currentPhase = .player2Selecting
+            } else {
+                currentPhase = .checkingWin
             }
         } else {
-            if !deckMgr.player1Hand.isEmpty {
-                startPlayer1Turn()
-            } else {
-                startPlayer2Turn()
-            }
+            // Default: player1's turn
+            currentPhase = .player1Selecting
         }
     }
 
-    func showDealButton() {
-        dealButton.isHidden = false
-        submitButton.isHidden = true
-        sortButton.isHidden = true
-    }
+    // MARK: - UI Helpers
 
-    func showMessage(_ text: String) {
+    private func showMessage(_ text: String) {
         messageLabel.text = text
         messageLabel.alpha = 1.0
         messageLabel.removeAllActions()
@@ -710,10 +744,16 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
         ]))
     }
 
+    private func sortPlayerHand() {
+        lastSortType = (lastSortType + 1) % 2
+        deckMgr.sortHand(player: 1, byNumber: lastSortType == 0)
+        rearrangeHand(player: 1)
+    }
+
     // MARK: - CardSpriteDelegate
 
     func cardClicked(_ card: CardSprite) {
-        // Update submit button visibility
+        guard currentPhase == .player1Selecting else { return }
         let selectedCount = deckMgr.getSelectedCards(player: 1).count
         submitButton.isHidden = (selectedCount == 0 || selectedCount > 5)
     }
@@ -730,11 +770,11 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
 
             if name == "dealButton" && !dealButton.isHidden {
                 startNewGame()
-            } else if name == "submitButton" && !submitButton.isHidden && gameState == .player1Turn {
-                player1SubmitCards()
+            } else if name == "submitButton" && !submitButton.isHidden && currentPhase == .player1Selecting {
+                player1Submit()
             } else if name == "sortButton" && !sortButton.isHidden {
                 sortPlayerHand()
-            } else if name.hasPrefix("placeBtn_") && gameState == .player2Placing {
+            } else if name.hasPrefix("placeBtn_") && currentPhase == .player2Placing {
                 if let col = Int(name.replacingOccurrences(of: "placeBtn_", with: "")) {
                     placeCardsToColumn(player: 2, col: col)
                 }
@@ -742,18 +782,9 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
         }
     }
 
-    func sortPlayerHand() {
-        lastSortType = (lastSortType + 1) % 2
-        deckMgr.sortHand(player: 1, byNumber: lastSortType == 0)
-        rearrangeHand(player: 1)
-    }
-
     // MARK: - Update
 
     override func update(_ currentTime: TimeInterval) {
         // Game loop updates if needed
-    }
-    private func gameStateMachine() {
-        
     }
 }
