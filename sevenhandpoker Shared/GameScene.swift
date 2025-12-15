@@ -46,7 +46,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
     private var commonDeckNode: SKSpriteNode!
     private var slotNodes: [SKSpriteNode] = []
     private var placeButtons: [SKSpriteNode] = []
-    private var headNodes: [SKSpriteNode] = []
+    private var headNodes: [HeadFigure] = []
 
     // Confirmation view
     private var confirmationView: DeckConfirmationView?
@@ -133,9 +133,9 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
             // [head[i] setClickDelegate:self]; ??
             headNode.zPosition = 100
             if (i == 0) {
-                headNode.position = CGPoint(x: 200, y: 100)
+                headNode.position = CGPoint(x: 200 - HeadFigure.slide_in_width, y: 100)
             } else {
-                headNode.position = CGPoint(x: 1200, y: 550)
+                headNode.position = CGPoint(x: 1200 + HeadFigure.slide_in_width, y: 550)
             }
             headNodes.append(headNode)
             addChild(headNode)
@@ -155,6 +155,9 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
     private func onEnterDealing() {
         dealButton.isHidden = true
         dealCards()
+        //TODO: add start Player
+        headNodes[0].changeAnimationState(HeadFigure.AnimationState.myTurn)
+        headNodes[1].changeAnimationState(HeadFigure.AnimationState.hidden)
     }
 
     private func onEnterPlayer1Selecting() {
@@ -162,6 +165,8 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
         for card in deckMgr.player1Hand {
             card.setEnabled(true)
         }
+        
+        headNodes[0].changeFigure(HeadFigure.FigureState.normal)
 
         sortButton.isHidden = false
         submitButton.isHidden = false
@@ -175,7 +180,10 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
         }
 
         showMessage("CPU choosing position...")
-
+        
+        headNodes[0].changeAnimationState(HeadFigure.AnimationState.hidden)
+        headNodes[1].changeAnimationState(HeadFigure.AnimationState.myTurn)
+        
         // AI places player1's cards
         run(SKAction.sequence([
             SKAction.wait(forDuration: 1.0),
@@ -193,6 +201,9 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
 
         showMessage("CPU plays \(selected.count) card(s)")
 
+        headNodes[0].changeAnimationState(HeadFigure.AnimationState.hidden)
+        headNodes[1].changeAnimationState(HeadFigure.AnimationState.myTurn)
+        
         // Wait then proceed to player placing
         run(SKAction.sequence([
             SKAction.wait(forDuration: 1.5),
@@ -210,6 +221,8 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
     private func onEnterPlayer2Placing() {
         showPlaceButtons(forPlayer: 2)
         showMessage("Choose where to place CPU's cards")
+        headNodes[0].changeAnimationState(HeadFigure.AnimationState.myTurn)
+        headNodes[1].changeAnimationState(HeadFigure.AnimationState.hidden)
     }
 
     private func onEnterComparing() {
@@ -778,7 +791,9 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate {
     func cardClicked(_ card: CardSprite) {
         guard currentPhase == .player1Selecting else { return }
         let selectedCount = deckMgr.getSelectedCards(player: 1).count
-        submitButton.isHidden = (selectedCount == 0 || selectedCount > 5)
+        let cantSubmit: Bool = (selectedCount == 0 || selectedCount > 5)
+        submitButton.isHidden = cantSubmit
+        headNodes[0].showSpin(!cantSubmit)
     }
 
     // MARK: - Touch Handling

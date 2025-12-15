@@ -12,6 +12,7 @@ protocol HeadFigureDelegate: AnyObject {
 }
 
 class HeadFigure: SKSpriteNode {
+    static let slide_in_width: CGFloat = 300
     // MARK: - Properties
 
     private var _player: Int = 0
@@ -71,16 +72,16 @@ class HeadFigure: SKSpriteNode {
         headSprite = SKSpriteNode()
         headSprite.size = CGSize(width: 150, height: 150)
         headSprite.position = CGPoint(x: 0, y: 10)
-        headSprite.zPosition = 2
+        headSprite.zPosition = 10
         headSprite.name = "head"
         addChild(headSprite)
     }
 
     private func setupRing() {
         ringSprite = SKSpriteNode(imageNamed: "check_lrng")
-        ringSprite.size = CGSize(width: 110, height: 110)
+        ringSprite.size = CGSize(width: 180, height: 180)
         ringSprite.position = CGPoint(x: 0, y: 0)
-        ringSprite.zPosition = 1
+        ringSprite.zPosition = 5
         ringSprite.name = "ring"
         ringSprite.isHidden = true
         addChild(ringSprite)
@@ -132,7 +133,7 @@ class HeadFigure: SKSpriteNode {
         return _player
     }
 
-    func setClickEnable(_ enable: Bool) {
+    private func setClickEnable(_ enable: Bool) {
         // Only player1 can be clicked
         if _player != PlayerType.player2.rawValue {
             _clickEnable = enable
@@ -150,8 +151,10 @@ class HeadFigure: SKSpriteNode {
         if show {
             ringSprite.isHidden = false
             startSpinAnimation()
+            setClickEnable(true)
         } else {
             ringSprite.isHidden = true
+            setClickEnable(false)
             ringSprite.removeAction(forKey: "spin")
         }
     }
@@ -214,14 +217,14 @@ class HeadFigure: SKSpriteNode {
         switch state {
         case .myTurn:
             if !_headOut {
-                slideIn(distance: 100 * distMult, duration: 0.8)
+                slideIn(distance: HeadFigure.slide_in_width * distMult, duration: 0.8)
             }
             _headOut = true
 
         case .hidden:
             setClickEnable(false)
             if _headOut {
-                slideOut(distance: -100 * distMult, duration: 0.8)
+                slideOut(distance: -HeadFigure.slide_in_width * distMult, duration: 0.8)
             }
             _headOut = false
 
