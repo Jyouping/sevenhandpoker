@@ -13,13 +13,13 @@ class GameViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        let scene = GameScene.newGameScene()
+
+        let scene = SplashScene.newSplashScene()
 
         // Present the scene
         let skView = self.view as! SKView
         skView.presentScene(scene)
-        
+
         skView.ignoresSiblingOrder = true
         skView.showsFPS = true
         skView.showsNodeCount = true
