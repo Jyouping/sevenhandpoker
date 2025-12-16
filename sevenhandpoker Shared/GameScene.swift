@@ -38,6 +38,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
     private var pendingColumn: Int = -1  // Column waiting to be compared
     private var pendingCompareWinner: PlayerType? = nil  // Winner waiting for confirmation
     private var lastPlacingPlayer: Int = 0  // Track who placed cards last (1 or 2)
+    private var startPlayer: Int = 1
 
     // Coin ownership: nil = unclaimed, player1/player2 = owned
     private var coinOwners: [PlayerType?] = Array(repeating: nil, count: 7)
@@ -85,9 +86,10 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
 
     // MARK: - Scene Setup
 
-    class func newGameScene() -> GameScene {
+    class func newGameScene(startPlayer: Int = 1) -> GameScene {
         let scene = GameScene(size: CGSize(width: 1400, height: 640))
         scene.scaleMode = .aspectFit
+        scene.startPlayer = startPlayer
         return scene
     }
 
@@ -155,10 +157,18 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
 
     private func onEnterIdle() {
         showMessage("Tap DEAL to start")
-        dealButton.isHidden = false
+        dealButton.isHidden = true
         submitButton.isHidden = true
         sortButton.isHidden = true
         hidePlaceButtons()
+        //wait for 1 seconds and trigger deal
+        run(SKAction.sequence([
+            SKAction.wait(forDuration: 1.0),
+            SKAction.run { [weak self] in
+                guard let self = self else { return }
+                startNewGame()
+            }
+        ]))
     }
 
     private func onEnterDealing() {
@@ -478,20 +488,23 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
             delay += dealInterval
         }
 
+        print("startPlayer \(startPlayer)")
         // After dealing, start player1's turn
         run(SKAction.sequence([
             SKAction.wait(forDuration: delay + 0.5),
             SKAction.run { [weak self] in
-                self?.currentPhase = .player1Selecting
+                if (self?.startPlayer == 1) {
+                    self?.currentPhase = .player1Selecting
+                } else {
+                    self?.currentPhase = .player2Selecting
+                }
             }
         ]))
     }
 
     //get card x based on its index
-    //todo: fix spacing
     private func getCardX(index: Int, total: Int) -> CGFloat {
         let spacing: CGFloat = min(max(40, 750 / CGFloat(total)), 60)    //set min spacing 40, but cap to 60
-        print("spacing: \(spacing)")
         let totalWidth = CGFloat(total - 1) * spacing
         let startX = (size.width - totalWidth) / 2
         return startX + CGFloat(index) * spacing
@@ -864,6 +877,9 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
     func gameWinLosePlayAgain() {
         gameWinLoseView?.removeFromParent()
         gameWinLoseView = nil
+
+        //flip start player
+        startPlayer = startPlayer == 1 ? 2 : 1
         startNewGame()
     }
 
