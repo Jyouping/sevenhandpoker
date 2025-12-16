@@ -43,11 +43,16 @@ class DeckMgr {
         shuffleNum()
         deckPos = 0
 
+        //remove card also clean up UI components
+        for card in player1Hand { card.removeFromParent() }
         player1Hand.removeAll()
+        for card in player2Hand { card.removeFromParent() }
         player2Hand.removeAll()
 
         for i in 0..<7 {
+            for card in p1Poker[i] { card.removeFromParent() }
             p1Poker[i].removeAll()
+            for card in p2Poker[i] { card.removeFromParent() }
             p2Poker[i].removeAll()
         }
     }

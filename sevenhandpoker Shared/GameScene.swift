@@ -153,7 +153,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
 
     // MARK: - State Entry Handlers
 
-    private func onEnterIdle() {        
+    private func onEnterIdle() {
         showMessage("Tap DEAL to start")
         dealButton.isHidden = false
         submitButton.isHidden = true
@@ -408,14 +408,6 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         // Reset deck manager
         deckMgr.initDeck()
         coinOwners = Array(repeating: nil, count: 7)
-
-        // Remove old cards
-        for card in deckMgr.player1Hand { card.removeFromParent() }
-        for card in deckMgr.player2Hand { card.removeFromParent() }
-        for col in 0..<7 {
-            for card in deckMgr.p1Poker[col] { card.removeFromParent() }
-            for card in deckMgr.p2Poker[col] { card.removeFromParent() }
-        }
 
         // Remove tie coins from previous game
         for coin in tieCoins {
