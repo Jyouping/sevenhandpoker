@@ -176,7 +176,6 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         }
         
         sortButton.isHidden = false
-        submitButton.isHidden = true
         showMessage("Select 1-5 cards")
     }
 
@@ -189,6 +188,8 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         showMessage("CPU choosing position...")
         
         headNodes[0].stopSpinAnimation()
+        submitButton.isHidden = true
+
         headNodes[0].changeAnimationState(HeadFigure.AnimationState.hidden)
         headNodes[1].changeAnimationState(HeadFigure.AnimationState.myTurn)
         
@@ -332,8 +333,9 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         addChild(dealButton)
 
         // Submit button, only used for debugging purpose, will not be show anywhere
-        submitButton = createButton(text: "SUBMIT", color: .systemBlue)
-        submitButton.position = CGPoint(x: size.width / 2 + 150, y: 50)
+        submitButton = SKSpriteNode(imageNamed: "submit_btn")
+        submitButton.size = CGSize(width: 100, height: 100)
+        submitButton.position = CGPoint(x: size.width - 200, y: size.height / 2 - 100)
         submitButton.name = "submitButton"
         submitButton.isHidden = true
         submitButton.zPosition = 100
@@ -342,7 +344,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         // Sort button
         sortButton = SKSpriteNode(imageNamed: "sort_btn")
         sortButton.size = CGSize(width: 100, height: 100)
-        sortButton.position = CGPoint(x: size.width - 200, y: size.height / 2)
+        sortButton.position = CGPoint(x: size.width - 200, y: size.height / 2 + 100)
         sortButton.name = "sortButton"
         sortButton.isHidden = true
         sortButton.zPosition = 100
@@ -440,8 +442,8 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         var delay: TimeInterval = 0
         let dealInterval: TimeInterval = 0.2
 
-        // Deal 14 cards to each player
-        for i in 0..<14 {
+        // Deal 13 cards to each player
+        for i in 0..<13 {
             // Player 1 card (face up)
             let p1Card = deckMgr.drawCardSprite(owner: 1, faceUp: true)
             p1Card.setScale(cardScale)
@@ -450,7 +452,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
             p1Card.delegate = self
             addChild(p1Card)
 
-            let p1TargetX = getCardX(index: i, total: 14)
+            let p1TargetX = getCardX(index: i, total: 13)
             let p1Move = SKAction.sequence([
                 SKAction.wait(forDuration: delay),
                 SKAction.move(to: CGPoint(x: p1TargetX, y: p1HandY), duration: 0.2),
@@ -466,7 +468,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
             p2Card.delegate = self
             addChild(p2Card)
 
-            let p2TargetX = getCardX(index: i, total: 14)
+            let p2TargetX = getCardX(index: i, total: 13)
             let p2Move = SKAction.sequence([
                 SKAction.wait(forDuration: delay + 0.05),
                 SKAction.move(to: CGPoint(x: p2TargetX, y: p2HandY), duration: 0.2)
@@ -488,7 +490,8 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
     //get card x based on its index
     //todo: fix spacing
     private func getCardX(index: Int, total: Int) -> CGFloat {
-        let spacing: CGFloat = min(50, (size.width - 150) / CGFloat(total))
+        let spacing: CGFloat = min(max(40, 750 / CGFloat(total)), 60)    //set min spacing 40, but cap to 60
+        print("spacing: \(spacing)")
         let totalWidth = CGFloat(total - 1) * spacing
         let startX = (size.width - totalWidth) / 2
         return startX + CGFloat(index) * spacing
@@ -518,9 +521,6 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
 
         addChild(confirmation)
         confirmationView = confirmation
-
-        submitButton.isHidden = true
-        sortButton.isHidden = true
     }
 
     // MARK: - DeckConfirmationDelegate
@@ -537,7 +537,6 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         confirmationView = nil
 
         // Return to selecting
-        submitButton.isHidden = true
         sortButton.isHidden = false
         currentPhase = .player1Selecting
     }
@@ -957,7 +956,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         guard currentPhase == .player1Selecting else { return }
         let selectedCount = deckMgr.getSelectedCards(player: 1).count
         let cantSubmit: Bool = (selectedCount == 0 || selectedCount > 5)
-        submitButton.isHidden = true
+        submitButton.isHidden = cantSubmit
         headNodes[0].showSpin(!cantSubmit)
     }
 

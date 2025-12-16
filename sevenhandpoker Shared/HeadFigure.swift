@@ -70,7 +70,7 @@ class HeadFigure: SKSpriteNode {
     private func setupHead() {
         // Initialize with empty sprite, changeFigure will set the texture
         headSprite = SKSpriteNode()
-        headSprite.size = CGSize(width: 150, height: 150)
+        headSprite.size = CGSize(width: 160, height: 160)
         headSprite.position = CGPoint(x: 0, y: 10)
         headSprite.zPosition = 10
         headSprite.name = "head"
@@ -78,8 +78,8 @@ class HeadFigure: SKSpriteNode {
     }
 
     private func setupRing() {
-        ringSprite = SKSpriteNode(imageNamed: "check_lrng")
-        ringSprite.size = CGSize(width: 180, height: 180)
+        ringSprite = SKSpriteNode(imageNamed: "submit_btn_ring")
+        ringSprite.size = CGSize(width: 190, height: 190)
         ringSprite.position = CGPoint(x: 0, y: 0)
         ringSprite.zPosition = 5
         ringSprite.name = "ring"
