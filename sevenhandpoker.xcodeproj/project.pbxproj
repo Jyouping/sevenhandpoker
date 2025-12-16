@@ -19,6 +19,7 @@
 				Card.swift,
 				CardSprite.swift,
 				Common.swift,
+				CompareColumnView.swift,
 				ComputerAI.swift,
 				DeckConfirmationView.swift,
 				DeckMgr.swift,

@@ -22,7 +22,7 @@ enum GamePhase {
     case gameOver           // Game ended
 }
 
-class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigureDelegate {
+class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigureDelegate, CompareColumnDelegate {
 
     // MARK: - Properties
 
@@ -36,6 +36,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         }
     }
     private var pendingColumn: Int = -1  // Column waiting to be compared
+    private var pendingCompareWinner: PlayerType? = nil  // Winner waiting for confirmation
 
     // Coin ownership: nil = unclaimed, player1/player2 = owned
     private var coinOwners: [PlayerType?] = Array(repeating: nil, count: 7)
@@ -50,6 +51,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
 
     // Confirmation view
     private var confirmationView: DeckConfirmationView?
+    private var compareColumnView: CompareColumnView?
 
     // Buttons
     private var submitButton: SKSpriteNode!
@@ -322,8 +324,9 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         addChild(submitButton)
 
         // Sort button
-        sortButton = createButton(text: "SORT", color: .systemOrange)
-        sortButton.position = CGPoint(x: size.width / 2 - 150, y: 50)
+        sortButton = SKSpriteNode(imageNamed: "sort_btn")
+        sortButton.size = CGSize(width: 100, height: 100)
+        sortButton.position = CGPoint(x: size.width - 200, y: size.height / 2)
         sortButton.name = "sortButton"
         sortButton.isHidden = true
         sortButton.zPosition = 100
@@ -634,28 +637,62 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         let p1Type = deckMgr.getBestOfCards(p1Cards)
         let p2Type = deckMgr.getBestOfCards(p2Cards)
 
-        var message = ""
-        switch winner {
-        case .player1:
-            message = "You win! (\(p1Type.displayName) vs \(p2Type.displayName))"
-            coinOwners[col] = .player1
-            moveCoin(col: col, toPlayer: .player1)
-        case .player2:
-            message = "CPU wins! (\(p2Type.displayName) vs \(p1Type.displayName))"
-            coinOwners[col] = .player2
-            moveCoin(col: col, toPlayer: .player2)
-        case .even:
-            message = "Tie! (\(p1Type.displayName))"
-        default:
-            break
+        // Store winner for later use
+        pendingCompareWinner = winner
+
+        // Show comparison view
+        showCompareColumnView(p1Cards: p1Cards, p1Type: p1Type,
+                              p2Cards: p2Cards, p2Type: p2Type,
+                              winner: winner)
+    }
+
+    private func showCompareColumnView(p1Cards: [CardSprite], p1Type: CardType,
+                                        p2Cards: [CardSprite], p2Type: CardType,
+                                        winner: PlayerType?) {
+        compareColumnView?.removeFromParent()
+
+        let compareView = CompareColumnView(sceneSize: size)
+        compareView.delegate = self
+        compareView.showComparison(p1Cards: p1Cards, p1CardType: p1Type,
+                                   p2Cards: p2Cards, p2CardType: p2Type,
+                                   winner: winner)
+        addChild(compareView)
+        compareColumnView = compareView
+    }
+
+    // MARK: - CompareColumnDelegate
+
+    func compareColumnDidConfirm() {
+        compareColumnView?.removeFromParent()
+        compareColumnView = nil
+
+        // Apply the comparison result
+        let col = pendingColumn
+        guard col >= 0 else {
+            pendingColumn = -1
+            currentPhase = .checkingWin
+            return
         }
 
-        showMessage(message)
+        if let winner = pendingCompareWinner {
+            switch winner {
+            case .player1:
+                coinOwners[col] = .player1
+                moveCoin(col: col, toPlayer: .player1)
+            case .player2:
+                coinOwners[col] = .player2
+                moveCoin(col: col, toPlayer: .player2)
+            default:
+                break
+            }
+        }
+
+        pendingColumn = -1
+        pendingCompareWinner = nil
 
         run(SKAction.sequence([
-            SKAction.wait(forDuration: 1.5),
+            SKAction.wait(forDuration: 0.5),
             SKAction.run { [weak self] in
-                self?.pendingColumn = -1
                 self?.currentPhase = .checkingWin
             }
         ]))
