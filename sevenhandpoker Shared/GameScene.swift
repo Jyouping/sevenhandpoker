@@ -41,6 +41,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
     // Coin ownership: nil = unclaimed, player1/player2 = owned
     private var coinOwners: [PlayerType?] = Array(repeating: nil, count: 7)
     private var coinSprites: [AnimatedCoin] = []
+    private var tieCoins: [AnimatedCoin] = []  // Extra coins created for ties
 
     // Coin animation settings
     private let coinAnimMinInterval: TimeInterval = 5.0
@@ -186,6 +187,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
 
         showMessage("CPU choosing position...")
         
+        headNodes[0].stopSpinAnimation()
         headNodes[0].changeAnimationState(HeadFigure.AnimationState.hidden)
         headNodes[1].changeAnimationState(HeadFigure.AnimationState.myTurn)
         
@@ -413,6 +415,12 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
             for card in deckMgr.p1Poker[col] { card.removeFromParent() }
             for card in deckMgr.p2Poker[col] { card.removeFromParent() }
         }
+
+        // Remove tie coins from previous game
+        for coin in tieCoins {
+            coin.removeFromParent()
+        }
+        tieCoins.removeAll()
 
         // Reset coins
         let startX: CGFloat = (size.width - 6 * slotSpacing) / 2
@@ -661,7 +669,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         let p2Type = deckMgr.getBestOfCards(p2Cards)
 
         // Store winner for later use
-        pendingCompareWinner = .even
+        pendingCompareWinner = winner
 
         // Show comparison view
         showCompareColumnView(p1Cards: p1Cards, p1Type: p1Type,
@@ -701,10 +709,18 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
             switch winner {
             case .player1:
                 coinOwners[col] = .player1
+                headNodes[0].changeFigure(.slightlyHappy)
+                headNodes[1].changeFigure(.slightlySad)
                 moveCoin(col: col, toPlayer: .player1)
             case .player2:
                 coinOwners[col] = .player2
+                headNodes[0].changeFigure(.slightlySad)
+                headNodes[1].changeFigure(.slightlyHappy)
                 moveCoin(col: col, toPlayer: .player2)
+            case .even:
+                headNodes[0].changeFigure(.slightlyHappy)
+                headNodes[1].changeFigure(.slightlyHappy)
+                handleTie(col: col)
             default:
                 break
             }
@@ -728,19 +744,57 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         updateScores()
     }
 
+    private func handleTie(col: Int) {
+        let startX: CGFloat = (size.width - 6 * slotSpacing) / 2
+        let coinX = startX + CGFloat(col) * slotSpacing
+
+        // Hide original coin
+        let originalCoin = coinSprites[col]
+        originalCoin.stopRandomPlayback()
+        originalCoin.run(SKAction.fadeOut(withDuration: 0.2))
+
+        // Create coin for player 1
+        let p1Coin = AnimatedCoin()
+        p1Coin.size = CGSize(width: 80, height: 80)
+        p1Coin.position = CGPoint(x: coinX, y: size.height / 2)
+        p1Coin.zPosition = 50
+        p1Coin.setFrame(0)
+        addChild(p1Coin)
+        tieCoins.append(p1Coin)
+        p1Coin.run(SKAction.moveTo(y: p1PokerY, duration: 0.3))
+
+        // Create coin for player 2
+        let p2Coin = AnimatedCoin()
+        p2Coin.size = CGSize(width: 80, height: 80)
+        p2Coin.position = CGPoint(x: coinX, y: size.height / 2)
+        p2Coin.zPosition = 50
+        p2Coin.setFrame(0)
+        addChild(p2Coin)
+        tieCoins.append(p2Coin)
+        p2Coin.run(SKAction.moveTo(y: p2PokerY, duration: 0.3))
+
+        // Mark column as tied (both players get a point)
+        coinOwners[col] = .even
+        updateScores()
+    }
+
     private func updateScores() {
-        let p1Score = coinOwners.filter { $0 == .player1 }.count
-        let p2Score = coinOwners.filter { $0 == .player2 }.count
+        // Count player wins + ties (both players get a point on tie)
+        let tieCount = coinOwners.filter { $0 == .even }.count
+        let p1Score = coinOwners.filter { $0 == .player1 }.count + tieCount
+        let p2Score = coinOwners.filter { $0 == .player2 }.count + tieCount
 
         p1ScoreLabel.text = "You: \(p1Score)"
         p2ScoreLabel.text = "CPU: \(p2Score)"
     }
 
     private func checkWinCondition() {
-        let p1Score = coinOwners.filter { $0 == .player1 }.count
-        let p2Score = coinOwners.filter { $0 == .player2 }.count
+        // Count player wins + ties (both players get a point on tie)
+        let tieCount = coinOwners.filter { $0 == .even }.count
+        let p1Score = coinOwners.filter { $0 == .player1 }.count + tieCount
+        let p2Score = coinOwners.filter { $0 == .player2 }.count + tieCount
 
-        // Check consecutive wins
+        // Check consecutive wins (ties count for both players)
         var p1Consecutive = 0, p2Consecutive = 0
         var maxP1Consecutive = 0, maxP2Consecutive = 0
 
@@ -753,6 +807,10 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
                 p2Consecutive += 1
                 p1Consecutive = 0
                 maxP2Consecutive = max(maxP2Consecutive, p2Consecutive)
+            } else if owner == .even {
+                // Tie counts for both, but breaks consecutive for win condition
+                p1Consecutive = 0
+                p2Consecutive = 0
             } else {
                 p1Consecutive = 0
                 p2Consecutive = 0
@@ -864,7 +922,6 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
               headFigure.getPlayer() == 1 else { return }
 
         player1Submit()
-        headFigure.stopSpinAnimation()
     }
 
     // MARK: - Touch Handling
