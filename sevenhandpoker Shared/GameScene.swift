@@ -16,7 +16,7 @@ enum GamePhase {
     case player1Confirming  // Player1 confirming selection
     case player1Waiting     // Waiting for AI to place player1's cards
     case player2Selecting   // AI selecting cards
-    case player2Placing     // Player1 placing player2's cards
+    case player1Placing     // Player1 placing player2's cards
     case comparing          // Comparing cards in a column
     case checkingWin        // Checking win condition
     case gameOver           // Game ended
@@ -54,6 +54,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
     private var commonDeckNode: SKSpriteNode!
     private var slotNodes: [SKSpriteNode] = []
     private var placeButtons: [SKSpriteNode] = []
+    private var p1PokerButtons: [SKSpriteNode] = []  // Transparent buttons for viewing p1 poker cards
     // headNode[0] => player1, headNode[1] => player2
     private var headNodes: [HeadFigure] = []
 
@@ -126,8 +127,8 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
             onEnterPlayer1Waiting()
         case .player2Selecting:
             onEnterPlayer2Selecting()
-        case .player2Placing:
-            onEnterPlayer2Placing()
+        case .player1Placing:
+            onEnterPlayer1Placing()
         case .comparing:
             onEnterComparing()
         case .checkingWin:
@@ -196,7 +197,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         }
 
         showMessage("CPU choosing position...")
-        
+        hideP1PokerButtons()
         headNodes[0].stopSpinAnimation()
         submitButton.isHidden = true
 
@@ -232,12 +233,12 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
                 for card in selected {
                     card.setFaceUp(false)
                 }
-                self.currentPhase = .player2Placing
+                self.currentPhase = .player1Placing
             }
         ]))
     }
 
-    private func onEnterPlayer2Placing() {
+    private func onEnterPlayer1Placing() {
         showPlaceButtons(forPlayer: 2)
         showMessage("Choose where to place CPU's cards")
         headNodes[0].changeAnimationState(HeadFigure.AnimationState.myTurn)
@@ -262,6 +263,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         submitButton.isHidden = true
         sortButton.isHidden = true
         hidePlaceButtons()
+        hideP1PokerButtons()
     }
 
     // MARK: - Setup Methods
@@ -372,6 +374,17 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
             addChild(btn)
             placeButtons.append(btn)
         }
+
+        // P1 Poker buttons (transparent, for viewing placed cards)
+        for i in 0..<7 {
+            let btn = SKSpriteNode(color: .clear, size: CGSize(width: 100, height: 140))
+            btn.position = CGPoint(x: startX + CGFloat(i) * slotSpacing, y: p1PokerY)
+            btn.name = "p1PokerBtn_\(i)"
+            btn.isHidden = true
+            btn.zPosition = 200  // Above cards
+            addChild(btn)
+            p1PokerButtons.append(btn)
+        }
     }
 
     private func setupLabels() {
@@ -443,6 +456,9 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
                 resetFrame: 0
             )
         }
+
+        // Hide p1 poker buttons
+        hideP1PokerButtons()
 
         updateScores()
         currentPhase = .dealing
@@ -554,6 +570,27 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         currentPhase = .player1Selecting
     }
 
+    func confirmationDidDismiss() {
+        confirmationView?.removeFromParent()
+        confirmationView = nil
+    }
+
+    private func showViewOnlyConfirmation(forColumn col: Int) {
+        let cards = deckMgr.getPokerDeck(player: 1, col: col)
+        guard !cards.isEmpty else { return }
+
+        confirmationView?.removeFromParent()
+
+        let confirmation = DeckConfirmationView(sceneSize: size, viewOnly: true)
+        confirmation.delegate = self
+
+        let cardType = deckMgr.getBestOfCards(cards)
+        confirmation.showCards(cards, cardType: cardType)
+
+        addChild(confirmation)
+        confirmationView = confirmation
+    }
+
     // MARK: - AI Actions
 
     private func aiPlacePlayer1Cards() {
@@ -572,6 +609,21 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
 
     private func hidePlaceButtons() {
         for btn in placeButtons {
+            btn.isHidden = true
+        }
+    }
+
+    private func updateP1PokerButtons() {
+        for i in 0..<7 {
+            // Show button if column has p1 cards but is not full (not yet judged)
+            let hasP1Cards = deckMgr.getColumnSize(player: 1, col: i) > 0
+            let isNotFull = !deckMgr.isColumnFull(col: i)
+            p1PokerButtons[i].isHidden = !(hasP1Cards && isNotFull)
+        }
+    }
+    
+    private func hideP1PokerButtons() {
+        for btn in p1PokerButtons {
             btn.isHidden = true
         }
     }
@@ -614,6 +666,9 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
             SKAction.wait(forDuration: 0.8),
             SKAction.run { [weak self] in
                 guard let self = self else { return }
+                // Update p1 poker buttons visibility
+                self.updateP1PokerButtons()
+
                 if self.deckMgr.isColumnFull(col: col) {
                     self.pendingColumn = col
                     self.currentPhase = .comparing
@@ -679,6 +734,9 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         // Store winner for later use
         pendingCompareWinner = winner
 
+        // make sure DeckConfirmationView is dismissed if there is any to avoid UI bug
+        confirmationDidDismiss()
+        
         // Show comparison view
         showCompareColumnView(p1Cards: p1Cards, p1Type: p1Type,
                               p2Cards: p2Cards, p2Type: p2Type,
@@ -933,7 +991,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
             } else {
                 currentPhase = .checkingWin
             }
-        } else if currentPhase == .player2Placing {
+        } else if currentPhase == .player1Placing {
             // After player places player2's cards
             if !p1HandEmpty {
                 currentPhase = .player1Selecting
@@ -1004,7 +1062,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
                 // Press down effect
                 sortButton.alpha = 0.7
                 sortButton.setScale(0.9)
-            } else if name.hasPrefix("placeBtn_") && currentPhase == .player2Placing {
+            } else if name.hasPrefix("placeBtn_") && currentPhase == .player1Placing {
                 if let col = Int(name.replacingOccurrences(of: "placeBtn_", with: "")) {
                     placeCardsToColumn(player: 2, col: col)
                 }
@@ -1027,6 +1085,13 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
             if name == "sortButton" && !sortButton.isHidden {
                 sortPlayerHand()
             }
+
+            // Check for p1Poker button clicks
+            if name.hasPrefix("p1PokerBtn_") && (currentPhase == .player1Selecting || currentPhase == .player1Placing) {
+                if let col = Int(name.replacingOccurrences(of: "p1PokerBtn_", with: "")) {
+                    showViewOnlyConfirmation(forColumn: col)
+                }
+            }
         }
     }
 
@@ -1040,5 +1105,23 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
 
     override func update(_ currentTime: TimeInterval) {
         // Game loop updates if needed
+    }
+    
+    private func tutorialText(_ subState: Int) {
+        let texts = [
+            "Welcome to Seven Hand Poker",
+            "These are your cards.\n You can tap to pick and unpick.",
+            "You can pick 1-5 cards every time \n to form different combinations.",
+            "Now let's pick two K cards to form a pair.",
+            "Once you've decided your pick,\n The opponent gets to place it.",
+            "Theses are the opponent's cards.\n You can not see his hand.",
+            "...but you can tell if one's picked.",
+            "Likewise, you decide where \nto place your opponent's pick.",
+            "Let's put into the same column.",
+            "Now both sides of a coin is filled...\nBigger side gets a coin. So you got it!",
+            "Be the first to get 4 coins in total\nor 3 coins next to each other to win.",
+            "That's the tutorial.\nNow have fun beating up the dog.",
+            "And enjoy beating players\nfrom all over the world."
+        ]
     }
 }

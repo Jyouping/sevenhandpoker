@@ -10,6 +10,7 @@ import SpriteKit
 protocol DeckConfirmationDelegate: AnyObject {
     func confirmationDidConfirm()
     func confirmationDidCancel()
+    func confirmationDidDismiss()
 }
 
 class DeckConfirmationView: SKNode {
@@ -22,15 +23,19 @@ class DeckConfirmationView: SKNode {
     private var cardTypeLabel: SKLabelNode!
     private var confirmButton: SKSpriteNode!
     private var cancelButton: SKSpriteNode!
+    private var okayButton: SKSpriteNode!
     private var cardDisplayNodes: [SKSpriteNode] = []
 
     private let dialogWidth: CGFloat = 600
     private let dialogHeight: CGFloat = 400
     private let cardScale: CGFloat = 1
 
-    init(sceneSize: CGSize) {
+    private var isViewOnlyMode: Bool = false
+
+    init(sceneSize: CGSize, viewOnly: Bool = false) {
         super.init()
 
+        self.isViewOnlyMode = viewOnly
         self.zPosition = 1000
         self.isUserInteractionEnabled = true
 
@@ -74,19 +79,28 @@ class DeckConfirmationView: SKNode {
     }
 
     private func setupButtons() {
-        // Confirm button
-        confirmButton = createButton(imageName: "panel_yes_btn")
-        confirmButton.position = CGPoint(x: 140, y: -dialogHeight / 2 + 90)
-        confirmButton.name = "confirmBtn"
-        confirmButton.zPosition = 2
-        dialogBox.addChild(confirmButton)
+        if isViewOnlyMode {
+            // Okay button only (centered)
+            okayButton = createButton(imageName: "panel_ok_btn")
+            okayButton.position = CGPoint(x: 0, y: -dialogHeight / 2 + 90)
+            okayButton.name = "okayBtn"
+            okayButton.zPosition = 2
+            dialogBox.addChild(okayButton)
+        } else {
+            // Confirm button
+            confirmButton = createButton(imageName: "panel_yes_btn")
+            confirmButton.position = CGPoint(x: 140, y: -dialogHeight / 2 + 90)
+            confirmButton.name = "confirmBtn"
+            confirmButton.zPosition = 2
+            dialogBox.addChild(confirmButton)
 
-        // Cancel button
-        cancelButton = createButton(imageName: "panel_no_btn")
-        cancelButton.position = CGPoint(x: -140, y: -dialogHeight / 2 + 90)
-        cancelButton.name = "cancelBtn"
-        cancelButton.zPosition = 2
-        dialogBox.addChild(cancelButton)
+            // Cancel button
+            cancelButton = createButton(imageName: "panel_no_btn")
+            cancelButton.position = CGPoint(x: -140, y: -dialogHeight / 2 + 90)
+            cancelButton.name = "cancelBtn"
+            cancelButton.zPosition = 2
+            dialogBox.addChild(cancelButton)
+        }
     }
 
     private func createButton(imageName: String) -> SKSpriteNode {
@@ -116,7 +130,8 @@ class DeckConfirmationView: SKNode {
         let startX = -totalWidth / 2
 
         for (index, card) in cards.enumerated() {
-            let cardCopy = SKSpriteNode(texture: card.texture)
+            // Always show face-up texture
+            let cardCopy = SKSpriteNode(texture: card.getFaceUpTexture())
             cardCopy.setScale(cardScale)
             cardCopy.position = CGPoint(x: startX + CGFloat(index) * 90, y: 30)
             cardCopy.zPosition = CGFloat(3 + index)
@@ -146,30 +161,42 @@ class DeckConfirmationView: SKNode {
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let touch = touches.first else { return }
-        let location = touch.location(in: self)
 
         // Check if touching buttons (need to convert to dialog coordinate)
         let dialogLocation = touch.location(in: dialogBox)
 
-        if confirmButton.contains(dialogLocation) {
-            confirmButton.alpha = 0.7
-        } else if cancelButton.contains(dialogLocation) {
-            cancelButton.alpha = 0.7
+        if isViewOnlyMode {
+            if okayButton.contains(dialogLocation) {
+                okayButton.alpha = 0.7
+            }
+        } else {
+            if confirmButton.contains(dialogLocation) {
+                confirmButton.alpha = 0.7
+            } else if cancelButton.contains(dialogLocation) {
+                cancelButton.alpha = 0.7
+            }
         }
     }
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let touch = touches.first else { return }
 
-        confirmButton.alpha = 1.0
-        cancelButton.alpha = 1.0
-
         let dialogLocation = touch.location(in: dialogBox)
 
-        if confirmButton.contains(dialogLocation) {
-            delegate?.confirmationDidConfirm()
-        } else if cancelButton.contains(dialogLocation) {
-            delegate?.confirmationDidCancel()
+        if isViewOnlyMode {
+            okayButton.alpha = 1.0
+            if okayButton.contains(dialogLocation) {
+                delegate?.confirmationDidDismiss()
+            }
+        } else {
+            confirmButton.alpha = 1.0
+            cancelButton.alpha = 1.0
+
+            if confirmButton.contains(dialogLocation) {
+                delegate?.confirmationDidConfirm()
+            } else if cancelButton.contains(dialogLocation) {
+                delegate?.confirmationDidCancel()
+            }
         }
     }
 }

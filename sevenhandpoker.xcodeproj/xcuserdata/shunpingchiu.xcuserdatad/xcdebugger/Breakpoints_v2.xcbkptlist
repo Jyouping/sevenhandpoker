@@ -16,7 +16,7 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "531"
             endingLineNumber = "531"
-            landmarkName = "showConfirmationView(for:)"
+            landmarkName = "player1Submit()"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
@@ -112,7 +112,7 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "553"
             endingLineNumber = "553"
-            landmarkName = "confirmationDidCancel()"
+            landmarkName = "showConfirmationView(for:)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
@@ -128,8 +128,8 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "557"
             endingLineNumber = "557"
-            landmarkName = "GameScene"
-            landmarkType = "3">
+            landmarkName = "confirmationDidConfirm()"
+            landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -206,9 +206,9 @@
             filePath = "sevenhandpoker Shared/GameScene.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "805"
-            endingLineNumber = "805"
-            landmarkName = "checkWinCondition()"
+            startingLineNumber = "808"
+            endingLineNumber = "808"
+            landmarkName = "moveCoin(col:toPlayer:)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
