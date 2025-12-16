@@ -661,7 +661,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         let p2Type = deckMgr.getBestOfCards(p2Cards)
 
         // Store winner for later use
-        pendingCompareWinner = winner
+        pendingCompareWinner = .even
 
         // Show comparison view
         showCompareColumnView(p1Cards: p1Cards, p1Type: p1Type,

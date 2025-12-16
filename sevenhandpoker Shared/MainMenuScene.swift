@@ -13,6 +13,8 @@ class MainMenuScene: SKScene, SpinButtonDelegate {
     private var titleNode: SKSpriteNode!
     private var startButton: SpinButton!
     private var settingsButton: SKSpriteNode!
+    private var soundButton: SKSpriteNode!
+
 
     class func newMenuScene() -> MainMenuScene {
         let scene = MainMenuScene(size: CGSize(width: 1400, height: 640))
@@ -50,8 +52,13 @@ class MainMenuScene: SKScene, SpinButtonDelegate {
         addChild(startButton)
 
         // Settings button
-        settingsButton = createButton(imagedName: "setting_icon", width: 200, height: 200)
-        settingsButton.position = CGPoint(x: 0, y: 0)
+        soundButton = createButton(imagedName: "sound_on_icon", width: 150, height: 150)
+        soundButton.position = CGPoint(x: 0, y: 0)
+        soundButton.name = "soundButton"
+        addChild(soundButton)
+        
+        settingsButton = createButton(imagedName: "setting_icon", width: 150, height: 150)
+        settingsButton.position = CGPoint(x: 150, y: 0)
         settingsButton.name = "settingsButton"
         addChild(settingsButton)
     }
@@ -84,6 +91,9 @@ class MainMenuScene: SKScene, SpinButtonDelegate {
         let touchedNodes = nodes(at: location)
 
         for node in touchedNodes {
+            if node.name == "soundButton" || node.parent?.name == "soundButton" {
+                soundButton.alpha = 0.7
+            }
             if node.name == "settingsButton" || node.parent?.name == "settingsButton" {
                 settingsButton.alpha = 0.7
             }
@@ -96,6 +106,7 @@ class MainMenuScene: SKScene, SpinButtonDelegate {
         let touchedNodes = nodes(at: location)
 
         startButton.alpha = 1.0
+        soundButton.alpha = 1.0
         settingsButton.alpha = 1.0
 
         for node in touchedNodes {

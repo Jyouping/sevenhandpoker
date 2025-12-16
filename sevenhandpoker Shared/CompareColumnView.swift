@@ -145,7 +145,8 @@ class CompareColumnView: SKNode {
         let startX = -totalWidth / 2
 
         for (index, card) in cards.enumerated() {
-            let cardCopy = SKSpriteNode(texture: card.texture)
+            // Always use face-up texture
+            let cardCopy = SKSpriteNode(texture: card.getFaceUpTexture())
             cardCopy.setScale(cardScale)
             cardCopy.position = CGPoint(x: startX + CGFloat(index) * 80, y: yOffset)
             cardCopy.zPosition = CGFloat(3 + index)

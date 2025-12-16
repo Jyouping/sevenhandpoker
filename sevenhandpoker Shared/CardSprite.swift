@@ -60,6 +60,13 @@ class CardSprite: SKSpriteNode {
     func getSelected() -> Bool { return _selected }
     func isEnabled() -> Bool { return _enabled }
 
+    /// Get the face-up texture for this card
+    func getFaceUpTexture() -> SKTexture {
+        let card = Card(color: _color, number: _number)
+        let imageName = card.getImageName(faceUp: true)
+        return SKTexture(imageNamed: imageName)
+    }
+
     func setEnabled(_ enabled: Bool) {
         _enabled = enabled
     }
