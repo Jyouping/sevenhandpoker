@@ -43,8 +43,8 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
     private var coinSprites: [AnimatedCoin] = []
 
     // Coin animation settings
-    private let coinAnimMinInterval: TimeInterval = 3.0
-    private let coinAnimMaxInterval: TimeInterval = 8.0
+    private let coinAnimMinInterval: TimeInterval = 5.0
+    private let coinAnimMaxInterval: TimeInterval = 15.0
 
     // UI Elements
     private var backgroundNode: SKSpriteNode!
@@ -882,13 +882,39 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
             } else if name == "submitButton" && !submitButton.isHidden && currentPhase == .player1Selecting {
                 player1Submit()
             } else if name == "sortButton" && !sortButton.isHidden {
-                sortPlayerHand()
+                // Press down effect
+                sortButton.alpha = 0.7
+                sortButton.setScale(0.9)
             } else if name.hasPrefix("placeBtn_") && currentPhase == .player2Placing {
                 if let col = Int(name.replacingOccurrences(of: "placeBtn_", with: "")) {
                     placeCardsToColumn(player: 2, col: col)
                 }
             }
         }
+    }
+
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        // Reset sortButton visual state
+        sortButton.alpha = 1.0
+        sortButton.setScale(1.0)
+
+        guard let touch = touches.first else { return }
+        let location = touch.location(in: self)
+        let touchedNodes = nodes(at: location)
+
+        for node in touchedNodes {
+            guard let name = node.name ?? node.parent?.name else { continue }
+
+            if name == "sortButton" && !sortButton.isHidden {
+                sortPlayerHand()
+            }
+        }
+    }
+
+    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+        // Reset sortButton visual state
+        sortButton.alpha = 1.0
+        sortButton.setScale(1.0)
     }
 
     // MARK: - Update

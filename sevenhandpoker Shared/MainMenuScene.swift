@@ -66,23 +66,8 @@ class MainMenuScene: SKScene, SpinButtonDelegate {
         return button
     }
 
-/*    // MARK: - Touch Handling
+    // MARK: - Touch Handling
 
-    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard let touch = touches.first else { return }
-        let location = touch.location(in: self)
-        let touchedNodes = nodes(at: location)
-
-        for node in touchedNodes {
-            if node.name == "startButton" || node.parent?.name == "startButton" {
-                startButton.alpha = 0.7
-            } else if node.name == "settingsButton" || node.parent?.name == "settingsButton" {
-                settingsButton.alpha = 0.7
-            }
-        }
-    }
- */
-    
     func spinButtonClicked(_ button: SpinButton) {
         switch button.identifier {
         case "play_button":
@@ -92,8 +77,18 @@ class MainMenuScene: SKScene, SpinButtonDelegate {
             break
         }
     }
+    
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard let touch = touches.first else { return }
+        let location = touch.location(in: self)
+        let touchedNodes = nodes(at: location)
 
-/*
+        for node in touchedNodes {
+            if node.name == "settingsButton" || node.parent?.name == "settingsButton" {
+                settingsButton.alpha = 0.7
+            }
+        }
+    }
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let touch = touches.first else { return }
@@ -104,15 +99,12 @@ class MainMenuScene: SKScene, SpinButtonDelegate {
         settingsButton.alpha = 1.0
 
         for node in touchedNodes {
-            if node.name == "startButton" || node.parent?.name == "startButton" {
-                goToGame()
-            } else if node.name == "settingsButton" || node.parent?.name == "settingsButton" {
+            if node.name == "settingsButton" || node.parent?.name == "settingsButton" {
                 openSettings()
             }
         }
     }
 
- */
     // MARK: - Navigation
 
     private func goToGame() {
