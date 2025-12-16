@@ -55,6 +55,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
     private var slotNodes: [SKSpriteNode] = []
     private var placeButtons: [SKSpriteNode] = []
     private var p1PokerButtons: [SKSpriteNode] = []  // Transparent buttons for viewing p1 poker cards
+    private var p2PokerButtons: [SKSpriteNode] = []  // Transparent buttons for viewing p2 poker cards
     // headNode[0] => player1, headNode[1] => player2
     private var headNodes: [HeadFigure] = []
 
@@ -197,7 +198,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         }
 
         showMessage("CPU choosing position...")
-        hideP1PokerButtons()
+        hidePokerButtons()
         headNodes[0].stopSpinAnimation()
         submitButton.isHidden = true
 
@@ -263,7 +264,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         submitButton.isHidden = true
         sortButton.isHidden = true
         hidePlaceButtons()
-        hideP1PokerButtons()
+        hidePokerButtons()
     }
 
     // MARK: - Setup Methods
@@ -385,6 +386,17 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
             addChild(btn)
             p1PokerButtons.append(btn)
         }
+
+        // P2 Poker buttons (transparent, for viewing placed cards)
+        for i in 0..<7 {
+            let btn = SKSpriteNode(color: .clear, size: CGSize(width: 100, height: 140))
+            btn.position = CGPoint(x: startX + CGFloat(i) * slotSpacing, y: p2PokerY)
+            btn.name = "p2PokerBtn_\(i)"
+            btn.isHidden = true
+            btn.zPosition = 200  // Above cards
+            addChild(btn)
+            p2PokerButtons.append(btn)
+        }
     }
 
     private func setupLabels() {
@@ -458,7 +470,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         }
 
         // Hide p1 poker buttons
-        hideP1PokerButtons()
+        hidePokerButtons()
 
         updateScores()
         currentPhase = .dealing
@@ -613,17 +625,24 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         }
     }
 
-    private func updateP1PokerButtons() {
+    private func updatePokerButtons() {
         for i in 0..<7 {
-            // Show button if column has p1 cards but is not full (not yet judged)
             let hasP1Cards = deckMgr.getColumnSize(player: 1, col: i) > 0
-            let isNotFull = !deckMgr.isColumnFull(col: i)
-            p1PokerButtons[i].isHidden = !(hasP1Cards && isNotFull)
+            let isFull = deckMgr.isColumnFull(col: i)
+
+            // P1 button: show if has p1 cards (for viewing own cards or reviewing comparison)
+            p1PokerButtons[i].isHidden = !hasP1Cards
+
+            // P2 button: show if column is full (for reviewing comparison)
+            p2PokerButtons[i].isHidden = !isFull
         }
     }
-    
-    private func hideP1PokerButtons() {
+
+    private func hidePokerButtons() {
         for btn in p1PokerButtons {
+            btn.isHidden = true
+        }
+        for btn in p2PokerButtons {
             btn.isHidden = true
         }
     }
@@ -667,7 +686,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
             SKAction.run { [weak self] in
                 guard let self = self else { return }
                 // Update p1 poker buttons visibility
-                self.updateP1PokerButtons()
+                self.updatePokerButtons()
 
                 if self.deckMgr.isColumnFull(col: col) {
                     self.pendingColumn = col
@@ -801,6 +820,11 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
                 self?.currentPhase = .checkingWin
             }
         ]))
+    }
+
+    func compareColumnDidDismiss() {
+        compareColumnView?.removeFromParent()
+        compareColumnView = nil
     }
 
     private func moveCoin(col: Int, toPlayer player: PlayerType) {
@@ -1087,12 +1111,50 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
             }
 
             // Check for p1Poker button clicks
-            if name.hasPrefix("p1PokerBtn_") && (currentPhase == .player1Selecting || currentPhase == .player1Placing) {
+            if name.hasPrefix("p1PokerBtn_") {
                 if let col = Int(name.replacingOccurrences(of: "p1PokerBtn_", with: "")) {
-                    showViewOnlyConfirmation(forColumn: col)
+                    handlePokerSlotClick(col: col)
+                }
+            }
+
+            // Check for p2Poker button clicks
+            if name.hasPrefix("p2PokerBtn_") {
+                if let col = Int(name.replacingOccurrences(of: "p2PokerBtn_", with: "")) {
+                    handlePokerSlotClick(col: col)
                 }
             }
         }
+    }
+
+    private func handlePokerSlotClick(col: Int) {
+        if deckMgr.isColumnFull(col: col) {
+            // Column is full (already compared) - show comparison review
+            showComparisonReview(forColumn: col)
+        } else if deckMgr.getColumnSize(player: 1, col: col) > 0 {
+            // Column has p1 cards but not full - show view-only confirmation
+            showViewOnlyConfirmation(forColumn: col)
+        }
+    }
+
+    private func showComparisonReview(forColumn col: Int) {
+        let p1Cards = deckMgr.getPokerDeck(player: 1, col: col)
+        let p2Cards = deckMgr.getPokerDeck(player: 2, col: col)
+
+        let p1Type = deckMgr.getBestOfCards(p1Cards)
+        let p2Type = deckMgr.getBestOfCards(p2Cards)
+
+        // Get the winner from coinOwners
+        let winner = coinOwners[col]
+
+        compareColumnView?.removeFromParent()
+
+        let compareView = CompareColumnView(sceneSize: size, viewOnly: true)
+        compareView.delegate = self
+        compareView.showComparison(p1Cards: p1Cards, p1CardType: p1Type,
+                                   p2Cards: p2Cards, p2CardType: p2Type,
+                                   winner: winner)
+        addChild(compareView)
+        compareColumnView = compareView
     }
 
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {

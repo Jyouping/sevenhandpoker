@@ -9,6 +9,7 @@ import SpriteKit
 
 protocol CompareColumnDelegate: AnyObject {
     func compareColumnDidConfirm()
+    func compareColumnDidDismiss()
 }
 
 class CompareColumnView: SKNode {
@@ -34,9 +35,12 @@ class CompareColumnView: SKNode {
     private let dialogHeight: CGFloat = 550
     private let cardScale: CGFloat = 0.9
 
-    init(sceneSize: CGSize) {
+    private var isViewOnlyMode: Bool = false
+
+    init(sceneSize: CGSize, viewOnly: Bool = false) {
         super.init()
 
+        self.isViewOnlyMode = viewOnly
         self.zPosition = 1000
         self.isUserInteractionEnabled = true
 
@@ -206,7 +210,11 @@ class CompareColumnView: SKNode {
         let dialogLocation = touch.location(in: dialogBox)
 
         if okButton.contains(dialogLocation) {
-            delegate?.compareColumnDidConfirm()
+            if isViewOnlyMode {
+                delegate?.compareColumnDidDismiss()
+            } else {
+                delegate?.compareColumnDidConfirm()
+            }
         }
     }
 }
