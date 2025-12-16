@@ -22,7 +22,7 @@ enum GamePhase {
     case gameOver           // Game ended
 }
 
-class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigureDelegate, CompareColumnDelegate {
+class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigureDelegate, CompareColumnDelegate, GameWinLoseDelegate {
 
     // MARK: - Properties
 
@@ -37,6 +37,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
     }
     private var pendingColumn: Int = -1  // Column waiting to be compared
     private var pendingCompareWinner: PlayerType? = nil  // Winner waiting for confirmation
+    private var lastPlacingPlayer: Int = 0  // Track who placed cards last (1 or 2)
 
     // Coin ownership: nil = unclaimed, player1/player2 = owned
     private var coinOwners: [PlayerType?] = Array(repeating: nil, count: 7)
@@ -52,11 +53,13 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
     private var commonDeckNode: SKSpriteNode!
     private var slotNodes: [SKSpriteNode] = []
     private var placeButtons: [SKSpriteNode] = []
+    // headNode[0] => player1, headNode[1] => player2
     private var headNodes: [HeadFigure] = []
 
     // Confirmation view
     private var confirmationView: DeckConfirmationView?
     private var compareColumnView: CompareColumnView?
+    private var gameWinLoseView: GameWinLoseView?
 
     // Buttons
     private var submitButton: SKSpriteNode!
@@ -150,7 +153,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
 
     // MARK: - State Entry Handlers
 
-    private func onEnterIdle() {
+    private func onEnterIdle() {        
         showMessage("Tap DEAL to start")
         dealButton.isHidden = false
         submitButton.isHidden = true
@@ -172,8 +175,6 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
             card.setEnabled(true)
         }
         
-        headNodes[0].changeFigure(HeadFigure.FigureState.normal)
-
         sortButton.isHidden = false
         submitButton.isHidden = true
         showMessage("Select 1-5 cards")
@@ -574,6 +575,9 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
     private func placeCardsToColumn(player: Int, col: Int) {
         hidePlaceButtons()
 
+        // Track who placed cards last for turn order after comparing
+        lastPlacingPlayer = player
+
         let selected = deckMgr.removeSelectedFromHand(player: player)
         let cardsPlaced = selected.count
         print("Placing \(cardsPlaced) cards for Player \(player) to column \(col)")
@@ -819,13 +823,13 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
 
         // Win conditions: 4 coins or 3 consecutive
         if p1Score >= 4 || maxP1Consecutive >= 3 {
-            showMessage("YOU WIN!")
+            showGameWinLoseView(isWin: true)
             currentPhase = .gameOver
             return
         }
 
         if p2Score >= 4 || maxP2Consecutive >= 3 {
-            showMessage("CPU WINS!")
+            showGameWinLoseView(isWin: false)
             currentPhase = .gameOver
             return
         }
@@ -841,17 +845,44 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
 
         if allFilled {
             if p1Score > p2Score {
-                showMessage("YOU WIN! (\(p1Score) - \(p2Score))")
+                showGameWinLoseView(isWin: true)
             } else if p2Score > p1Score {
-                showMessage("CPU WINS! (\(p2Score) - \(p1Score))")
+                showGameWinLoseView(isWin: false)
             } else {
-                showMessage("TIE GAME!")
+                // Tie game - show win panel (or could create a separate tie panel)
+                showGameWinLoseView(isWin: true)
             }
             currentPhase = .gameOver
             return
         }
 
         proceedToNextTurn()
+    }
+
+    private func showGameWinLoseView(isWin: Bool) {
+        gameWinLoseView?.removeFromParent()
+
+        let winLoseView = GameWinLoseView(sceneSize: size, isWin: isWin)
+        winLoseView.delegate = self
+        addChild(winLoseView)
+        gameWinLoseView = winLoseView
+    }
+
+    // MARK: - GameWinLoseDelegate
+
+    func gameWinLosePlayAgain() {
+        gameWinLoseView?.removeFromParent()
+        gameWinLoseView = nil
+        startNewGame()
+    }
+
+    func gameWinLoseMainMenu() {
+        gameWinLoseView?.removeFromParent()
+        gameWinLoseView = nil
+
+        let mainMenu = MainMenuScene.newMenuScene()
+        let transition = SKTransition.fade(withDuration: 0.5)
+        view?.presentScene(mainMenu, transition: transition)
     }
 
     private func proceedToNextTurn() {
@@ -863,8 +894,31 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
             return
         }
 
-        // Alternate turns based on current phase
-        if currentPhase == .player1Waiting || currentPhase == .comparing || currentPhase == .checkingWin {
+        // After comparing/checkingWin, use lastPlacingPlayer to determine next turn
+        // If player1 placed last → player2's turn next
+        // If player2 placed last → player1's turn next
+        if currentPhase == .comparing || currentPhase == .checkingWin {
+            if lastPlacingPlayer == 1 {
+                // Player1 placed last, so player2's turn
+                if !p2HandEmpty {
+                    currentPhase = .player2Selecting
+                } else if !p1HandEmpty {
+                    currentPhase = .player1Selecting
+                } else {
+                    currentPhase = .checkingWin
+                }
+            } else {
+                // Player2 placed last, so player1's turn
+                if !p1HandEmpty {
+                    currentPhase = .player1Selecting
+                } else if !p2HandEmpty {
+                    currentPhase = .player2Selecting
+                } else {
+                    currentPhase = .checkingWin
+                }
+            }
+        } else if currentPhase == .player1Waiting {
+            // After AI places player1's cards
             if !p2HandEmpty {
                 currentPhase = .player2Selecting
             } else if !p1HandEmpty {
@@ -873,6 +927,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
                 currentPhase = .checkingWin
             }
         } else if currentPhase == .player2Placing {
+            // After player places player2's cards
             if !p1HandEmpty {
                 currentPhase = .player1Selecting
             } else if !p2HandEmpty {
