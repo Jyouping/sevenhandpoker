@@ -40,7 +40,11 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
 
     // Coin ownership: nil = unclaimed, player1/player2 = owned
     private var coinOwners: [PlayerType?] = Array(repeating: nil, count: 7)
-    private var coinSprites: [SKSpriteNode] = []
+    private var coinSprites: [AnimatedCoin] = []
+
+    // Coin animation settings
+    private let coinAnimMinInterval: TimeInterval = 3.0
+    private let coinAnimMaxInterval: TimeInterval = 8.0
 
     // UI Elements
     private var backgroundNode: SKSpriteNode!
@@ -297,13 +301,22 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
 
         for i in 0..<7 {
             let x = startX + CGFloat(i) * slotSpacing
-            let coin = SKSpriteNode(imageNamed: "coin")
+            let coin = AnimatedCoin()
             coin.size = CGSize(width: 80, height: 80)
             coin.position = CGPoint(x: x, y: size.height / 2)
             coin.zPosition = 50
             coin.name = "coin_\(i)"
             addChild(coin)
             coinSprites.append(coin)
+
+            // Start random playback: play frames 4-7, then reset to frame 0
+            coin.startRandomPlayback(
+                minInterval: coinAnimMinInterval,
+                maxInterval: coinAnimMaxInterval,
+                startFrame: 4,
+                endFrame: 7,
+                resetFrame: 0
+            )
         }
     }
 
@@ -406,6 +419,16 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         for i in 0..<7 {
             coinSprites[i].position = CGPoint(x: startX + CGFloat(i) * slotSpacing, y: size.height / 2)
             coinSprites[i].alpha = 1.0
+            // Restart random playback: play frames 4-7, then reset to frame 0
+            coinSprites[i].stopRandomPlayback()
+            coinSprites[i].setFrame(0)
+            coinSprites[i].startRandomPlayback(
+                minInterval: coinAnimMinInterval,
+                maxInterval: coinAnimMaxInterval,
+                startFrame: 4,
+                endFrame: 7,
+                resetFrame: 0
+            )
         }
 
         updateScores()

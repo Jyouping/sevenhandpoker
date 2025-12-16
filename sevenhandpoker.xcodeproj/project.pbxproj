@@ -28,6 +28,7 @@
 				GameScene.swift,
 				HeadFigure.swift,
 				MainMenuScene.swift,
+				SpinButton.swift,
 				SplashScene.swift,
 			);
 			target = 7FE8B9B52EEFB49900E140DD /* sevenhandpoker iOS */;

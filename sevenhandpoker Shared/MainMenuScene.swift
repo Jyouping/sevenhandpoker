@@ -7,10 +7,11 @@
 
 import SpriteKit
 
-class MainMenuScene: SKScene {
+class MainMenuScene: SKScene, SpinButtonDelegate {
 
     private var backgroundNode: SKSpriteNode!
-    private var startButton: SKSpriteNode!
+    private var titleNode: SKSpriteNode!
+    private var startButton: SpinButton!
     private var settingsButton: SKSpriteNode!
 
     class func newMenuScene() -> MainMenuScene {
@@ -32,46 +33,40 @@ class MainMenuScene: SKScene {
         backgroundNode.zPosition = -1
         backgroundNode.size = size
         addChild(backgroundNode)
+        titleNode = SKSpriteNode(imageNamed: "title")
+        titleNode.position = CGPoint(x: size.width / 2 + 300, y: size.height / 2 + 120)
+        titleNode.zPosition = 0
+        addChild(titleNode)
     }
 
+    
     private func setupButtons() {
         // Start button
-        startButton = createButton(text: "START", color: UIColor(red: 0.2, green: 0.6, blue: 0.3, alpha: 1.0))
-        startButton.position = CGPoint(x: size.width / 2, y: size.height / 2)
-        startButton.name = "startButton"
+        startButton = SpinButton(buttonImage: "play_btn", ringImage: "play_btn_ring", identifier: "play_button", size: CGSize(width: 120, height: 120))
+        startButton.position = CGPoint(x: size.width / 2 + 300, y: size.height / 2 - 120)
+        startButton.name = "play_button"
+        startButton.delegate = self
+        startButton.setEnabled(true)
         addChild(startButton)
 
         // Settings button
-        settingsButton = createButton(text: "SETTINGS", color: UIColor(red: 0.3, green: 0.3, blue: 0.5, alpha: 1.0))
-        settingsButton.position = CGPoint(x: size.width / 2, y: size.height / 2 - 100)
+        settingsButton = createButton(imagedName: "setting_icon", width: 200, height: 200)
+        settingsButton.position = CGPoint(x: 0, y: 0)
         settingsButton.name = "settingsButton"
         addChild(settingsButton)
     }
 
-    private func createButton(text: String, color: UIColor) -> SKSpriteNode {
-        let button = SKSpriteNode(color: color, size: CGSize(width: 200, height: 60))
+    private func createButton(imagedName: String, width: CGFloat, height: CGFloat) -> SKSpriteNode {
+        let button = SKSpriteNode(imageNamed: imagedName)
         button.zPosition = 10
-
+        //Note: this will update achor point to easier position - no animaion should be done here
+        button.anchorPoint = CGPoint(x: 0, y: 0)
+        button.size = CGSize(width: width, height: height)
         // Add rounded corner effect with border
-        let border = SKShapeNode(rectOf: CGSize(width: 200, height: 60), cornerRadius: 10)
-        border.strokeColor = .white
-        border.lineWidth = 3
-        border.fillColor = .clear
-        border.zPosition = 1
-        button.addChild(border)
-
-        let label = SKLabelNode(fontNamed: "MarkerFelt-Wide")
-        label.text = text
-        label.fontSize = 28
-        label.fontColor = .white
-        label.verticalAlignmentMode = .center
-        label.zPosition = 2
-        button.addChild(label)
-
         return button
     }
 
-    // MARK: - Touch Handling
+/*    // MARK: - Touch Handling
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let touch = touches.first else { return }
@@ -86,6 +81,19 @@ class MainMenuScene: SKScene {
             }
         }
     }
+ */
+    
+    func spinButtonClicked(_ button: SpinButton) {
+        switch button.identifier {
+        case "play_button":
+            // 處理 play 按鈕
+            goToGame()
+        default:
+            break
+        }
+    }
+
+/*
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let touch = touches.first else { return }
@@ -104,6 +112,7 @@ class MainMenuScene: SKScene {
         }
     }
 
+ */
     // MARK: - Navigation
 
     private func goToGame() {
