@@ -19,6 +19,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Actions.sks,
+				AdsLibs/AdConfig.swift,
 				AnimatedCoin.swift,
 				Assets.xcassets,
 				Card.swift,
@@ -34,6 +35,7 @@
 				GameWinLoseView.swift,
 				HeadFigure.swift,
 				InstructionMgr.swift,
+				InterstitialAdManager.swift,
 				MainMenuScene.swift,
 				SoundMgr.swift,
 				sounds/click1.wav,

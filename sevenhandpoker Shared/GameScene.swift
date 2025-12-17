@@ -95,6 +95,9 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
 
     private var lastSortType: Int = 0
 
+    // Ad tracking
+    private var playerActionCount: Int = 0
+
     // MARK: - Scene Setup
 
     class func newGameScene(startPlayer: Int = 1, isTutorial: Bool = false) -> GameScene {
@@ -207,11 +210,14 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
     }
 
     private func onEnterPlayer1Selecting() {
+        // Track player action for ads
+        trackPlayerActionAndShowAd()
+
         // Enable player1's cards for selection
         for card in deckMgr.player1Hand {
             card.setEnabled(true)
         }
-        
+
         sortButton.isHidden = false
         showMessage("Select 1-5 cards")
     }
@@ -267,6 +273,9 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
     }
 
     private func onEnterPlayer1Placing() {
+        // Track player action for ads
+        trackPlayerActionAndShowAd()
+
         showPlaceButtons(forPlayer: 2)
         showMessage("Choose where to place CPU's cards")
         headNodes[0].changeAnimationState(HeadFigure.AnimationState.myTurn)
@@ -292,6 +301,17 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         sortButton.isHidden = true
         hidePlaceButtons()
         hidePokerButtons()
+    }
+
+    // MARK: - Ad Management
+
+    private func trackPlayerActionAndShowAd() {
+        playerActionCount += 1
+        print("Player Action count \(playerActionCount)")
+        if ((playerActionCount > 0) && (playerActionCount % AdConfig.userActionsPerAd == 0)) {
+            print("Show ads...")
+            InterstitialAdManager.shared.showAd()
+        }
     }
 
     // MARK: - Setup Methods

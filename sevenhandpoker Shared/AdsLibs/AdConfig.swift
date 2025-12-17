@@ -39,5 +39,5 @@ struct AdConfig {
 #endif
     // Test ad id
     // MARK: - 廣告顯示邏輯
-    static let stagesPerAd = 25          // 每幾個state change 顯示一次廣告
+    static let userActionsPerAd = 9          // 每幾個state change 顯示一次廣告
 }
