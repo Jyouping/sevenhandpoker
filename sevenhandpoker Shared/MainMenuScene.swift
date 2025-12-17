@@ -7,7 +7,7 @@
 
 import SpriteKit
 
-class MainMenuScene: SKScene, SpinButtonDelegate {
+class MainMenuScene: SKScene, SpinButtonDelegate, SettingViewDelegate {
     private var soundMgr: SoundMgr!
 
     private var backgroundNode: SKSpriteNode!
@@ -16,6 +16,8 @@ class MainMenuScene: SKScene, SpinButtonDelegate {
     private var instructionButton: SpinButton!
     private var settingsButton: SKSpriteNode!
     private var soundButton: SKSpriteNode!
+
+    private var settingView: SettingView?
 
 
 
@@ -171,7 +173,18 @@ class MainMenuScene: SKScene, SpinButtonDelegate {
         }
     }
     private func openSettings() {
-        // TODO: Implement settings scene
-        print("Settings tapped")
+        // Remove existing setting view if any
+        settingView?.removeFromParent()
+
+        // Create and show setting view
+        settingView = SettingView(sceneSize: size)
+        settingView?.delegate = self
+        addChild(settingView!)
+    }
+
+    // MARK: - SettingViewDelegate
+
+    func settingViewDidDismiss() {
+        settingView = nil
     }
 }

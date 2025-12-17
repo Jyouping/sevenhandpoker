@@ -37,6 +37,7 @@
 				InstructionMgr.swift,
 				InterstitialAdManager.swift,
 				MainMenuScene.swift,
+				SettingView.swift,
 				SoundMgr.swift,
 				sounds/click1.wav,
 				sounds/compare.mp3,
