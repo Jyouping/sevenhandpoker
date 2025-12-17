@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		7FE8CCDF2EF29E5500E140DD /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; productRef = 7FE8CCDE2EF29E5500E140DD /* GoogleMobileAds */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		7FE8B9B62EEFB49900E140DD /* sevenhandpoker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = sevenhandpoker.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -48,6 +52,13 @@
 			);
 			target = 7FE8B9B52EEFB49900E140DD /* sevenhandpoker iOS */;
 		};
+		7FE8CD6B2EF29FF000E140DD /* Exceptions for "config" folder in "sevenhandpoker iOS" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 7FE8B9B52EEFB49900E140DD /* sevenhandpoker iOS */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -64,6 +75,14 @@
 			path = "sevenhandpoker iOS";
 			sourceTree = "<group>";
 		};
+		7FE8CD6A2EF29FEF00E140DD /* config */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				7FE8CD6B2EF29FF000E140DD /* Exceptions for "config" folder in "sevenhandpoker iOS" target */,
+			);
+			path = config;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -71,6 +90,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7FE8CCDF2EF29E5500E140DD /* GoogleMobileAds in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -80,6 +100,7 @@
 		7FE8B9A82EEFB49700E140DD = {
 			isa = PBXGroup;
 			children = (
+				7FE8CD6A2EF29FEF00E140DD /* config */,
 				7FE8B9AD2EEFB49700E140DD /* sevenhandpoker Shared */,
 				7FE8B9B82EEFB49900E140DD /* sevenhandpoker iOS */,
 				7FE8B9B72EEFB49900E140DD /* Products */,
@@ -111,9 +132,11 @@
 			);
 			fileSystemSynchronizedGroups = (
 				7FE8B9B82EEFB49900E140DD /* sevenhandpoker iOS */,
+				7FE8CD6A2EF29FEF00E140DD /* config */,
 			);
 			name = "sevenhandpoker iOS";
 			packageProductDependencies = (
+				7FE8CCDE2EF29E5500E140DD /* GoogleMobileAds */,
 			);
 			productName = "sevenhandpoker iOS";
 			productReference = 7FE8B9B62EEFB49900E140DD /* sevenhandpoker.app */;
@@ -143,6 +166,9 @@
 			);
 			mainGroup = 7FE8B9A82EEFB49700E140DD;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				7FE8CCDD2EF29E5500E140DD /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 7FE8B9B72EEFB49900E140DD /* Products */;
 			projectDirPath = "";
@@ -183,6 +209,8 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 9639463D3U;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = config/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.card-games";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UIMainStoryboardFile = Main;
@@ -198,9 +226,13 @@
 				PRODUCT_BUNDLE_IDENTIFIER = weiweistudio.sevenhandpoker;
 				PRODUCT_NAME = sevenhandpoker;
 				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -213,6 +245,8 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 9639463D3U;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = config/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.card-games";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UIMainStoryboardFile = Main;
@@ -228,9 +262,13 @@
 				PRODUCT_BUNDLE_IDENTIFIER = weiweistudio.sevenhandpoker;
 				PRODUCT_NAME = sevenhandpoker;
 				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
@@ -371,6 +409,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		7FE8CCDD2EF29E5500E140DD /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/googleads/swift-package-manager-google-mobile-ads.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.14.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		7FE8CCDE2EF29E5500E140DD /* GoogleMobileAds */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7FE8CCDD2EF29E5500E140DD /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */;
+			productName = GoogleMobileAds;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 7FE8B9A92EEFB49700E140DD /* Project object */;
 }
