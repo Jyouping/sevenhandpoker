@@ -124,12 +124,6 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         setupLabels()
         setupCommonDeck()
         setupHeads()
-
-        view.showsFPS = false
-        view.showsNodeCount = false
-        view.showsPhysics = false
-        view.showsDrawCount = false
-        view.showsFields = false
         
         currentPhase = .idle
     }

@@ -21,12 +21,6 @@ class SplashScene: SKScene {
         setupBackground()
         setupCoin()
         startAnimation()
-        
-        view.showsFPS = false
-        view.showsNodeCount = false
-        view.showsPhysics = false
-        view.showsDrawCount = false
-        view.showsFields = false
     }
 
     // MARK: - Setup

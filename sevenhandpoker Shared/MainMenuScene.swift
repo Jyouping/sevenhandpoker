@@ -29,13 +29,7 @@ class MainMenuScene: SKScene, SpinButtonDelegate, SettingViewDelegate, Achieveme
         return scene
     }
 
-    override func didMove(to view: SKView) {
-        view.showsFPS = false
-        view.showsNodeCount = false
-        view.showsPhysics = false
-        view.showsDrawCount = false
-        view.showsFields = false
-        
+    override func didMove(to view: SKView) {        
         setupBackground()
         setupButtons()
         setupMusic()
