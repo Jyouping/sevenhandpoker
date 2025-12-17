@@ -70,6 +70,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
     
     //Note: there are complex logic regarding tutorialDialog, you need to search tutorial == 1
     private var tutorialDialog: DialogBoxView?
+    private var tipDialog: DialogBoxView?
 
     // Buttons
     private var submitButton: SKSpriteNode!
@@ -80,8 +81,6 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
 
     // Labels
     private var messageLabel: SKLabelNode!
-    private var p1ScoreLabel: SKLabelNode!
-    private var p2ScoreLabel: SKLabelNode!
 
     // Card layout constants
     private let cardScale: CGFloat = 0.95
@@ -126,6 +125,12 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         setupCommonDeck()
         setupHeads()
 
+        view.showsFPS = false
+        view.showsNodeCount = false
+        view.showsPhysics = false
+        view.showsDrawCount = false
+        view.showsFields = false
+        
         currentPhase = .idle
     }
 
@@ -192,9 +197,28 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         submitButton.isHidden = true
         sortButton.isHidden = true
         hidePlaceButtons()
-        //wait for 1 seconds and trigger deal
+
+        // Check if we should show a tip (not in tutorial mode)
+        if !tutorialMode, let tip = TipManager.shared.shouldShowTip() {
+            showTipDialog(tip)
+        } else {
+            startGameAfterDelay()
+        }
+    }
+
+    private func showTipDialog(_ tip: String) {
+        // Remove existing tip dialog if any
+        tipDialog?.removeFromParent()
+
+        tipDialog = DialogBoxView(sceneSize: size, style: .center, text: tip)
+        tipDialog?.delegate = self
+        addChild(tipDialog!)
+    }
+
+    private func startGameAfterDelay() {
+        //wait for 0.5 seconds and trigger deal
         run(SKAction.sequence([
-            SKAction.wait(forDuration: 1.0),
+            SKAction.wait(forDuration: 0.5),
             SKAction.run { [weak self] in
                 guard let self = self else { return }
                 startNewGame()
@@ -250,7 +274,6 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
     private func onEnterPlayer2Selecting() {
         // AI selects cards (with animation if animatedSelection is true)
         computerAI.selectCards()
-        //dialogBoxDidDismiss()
 
         let selected = deckMgr.getSelectedCards(player: 2)
 
@@ -463,22 +486,6 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         messageLabel.position = CGPoint(x: size.width / 2, y: size.height / 2)
         messageLabel.zPosition = 100
         addChild(messageLabel)
-
-        p1ScoreLabel = SKLabelNode(fontNamed: "MarkerFelt-Wide")
-        p1ScoreLabel.fontSize = 20
-        p1ScoreLabel.fontColor = .yellow
-        p1ScoreLabel.position = CGPoint(x: 80, y: p1HandY)
-        p1ScoreLabel.zPosition = 10
-        p1ScoreLabel.text = "You: 0"
-        addChild(p1ScoreLabel)
-
-        p2ScoreLabel = SKLabelNode(fontNamed: "MarkerFelt-Wide")
-        p2ScoreLabel.fontSize = 20
-        p2ScoreLabel.fontColor = .cyan
-        p2ScoreLabel.position = CGPoint(x: 80, y: p2HandY)
-        p2ScoreLabel.zPosition = 10
-        p2ScoreLabel.text = "CPU: 0"
-        addChild(p2ScoreLabel)
     }
 
     private func createButton(text: String, color: UIColor, size: CGSize = CGSize(width: 100, height: 44)) -> SKSpriteNode {
@@ -957,9 +964,6 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         let tieCount = coinOwners.filter { $0 == .even }.count
         let p1Score = coinOwners.filter { $0 == .player1 }.count + tieCount
         let p2Score = coinOwners.filter { $0 == .player2 }.count + tieCount
-
-        p1ScoreLabel.text = "You: \(p1Score)"
-        p2ScoreLabel.text = "CPU: \(p2Score)"
     }
 
     private func checkWinCondition() {
@@ -1075,13 +1079,21 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
     
     // MARK: - Dialogbox delegate
 
-    // This is now for turotial only
     func dialogBoxDidDismiss() {
+        // Handle tip dialog dismiss first
+        if let currentTipDialog = tipDialog {
+            currentTipDialog.removeFromParent()
+            tipDialog = nil
+            // After tip is dismissed, start the game
+            startGameAfterDelay()
+            return
+        }
+
         // Guard against multiple calls or calls when dialog already removed
         if (!tutorialMode) {
             return
         }
-        
+
         guard let currentDialog = tutorialDialog else {
             print("Dialog debugging: dialogboxView is already nil, ignoring dismiss")
             return
