@@ -20,6 +20,7 @@ class SpinButton: SKSpriteNode {
 
     private var isEnabled: Bool = false
     private var isClickable: Bool = false
+    private var ringOffset: CGFloat = 30
 
     // Button identifier for distinguishing different buttons
     private(set) var identifier: String = ""
@@ -33,11 +34,12 @@ class SpinButton: SKSpriteNode {
     ///   - ringImage: Name of the ring image asset
     ///   - identifier: Unique identifier for this button
     ///   - size: Optional size for both button and ring (nil = use original image size)
-    init(buttonImage: String, ringImage: String, identifier: String = "", size: CGSize? = nil) {
+    init(buttonImage: String, ringImage: String, identifier: String = "", size: CGSize? = nil, ringOffset: CGFloat = 30) {
         super.init(texture: nil, color: .clear, size: size ?? CGSize(width: 100, height: 100))
 
         self.identifier = identifier
         self.isUserInteractionEnabled = true
+        self.ringOffset = ringOffset
 
         setupButton(buttonImage: buttonImage, ringImage: ringImage, size: size)
     }
@@ -65,7 +67,7 @@ class SpinButton: SKSpriteNode {
             setSize(size)
         } else {
             self.size = buttonSprite.size
-            ringSprite.size = CGSize(width: buttonSprite.size.width + 30, height: buttonSprite.size.height + 30)
+            ringSprite.size = CGSize(width: buttonSprite.size.width + self.ringOffset, height: buttonSprite.size.height + self.ringOffset)
         }
     }
 
@@ -96,7 +98,7 @@ class SpinButton: SKSpriteNode {
     func setSize(_ size: CGSize) {
         self.size = size
         buttonSprite.size = size
-        ringSprite.size = CGSize(width: size.width + 30, height: size.height + 30)
+        ringSprite.size = CGSize(width: size.width + self.ringOffset, height: size.height + self.ringOffset)
     }
 
     /// Change button image
@@ -146,7 +148,7 @@ class SpinButton: SKSpriteNode {
         // Check if touch ended within button bounds (relative to center anchor)
         let halfWidth = size.width / 2
         let halfHeight = size.height / 2
-        let hitRect = CGRect(x: -halfWidth, y: -halfHeight, width: size.width, height: size.height)
+        let hitRect = CGRect(x: -halfWidth, y: -halfHeight, width: ringSprite.size.width, height: ringSprite.size.height)
 
         print("SpinButton touch location: \(location), hitRect: \(hitRect), contains: \(hitRect.contains(location))")
 

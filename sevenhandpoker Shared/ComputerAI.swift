@@ -13,14 +13,17 @@ class ComputerAI {
     private var level: Int = 1  // 0=Easy, 1=Medium, 2=Hard
     var animatedSelection: Bool = true
     private let selectionDelay: TimeInterval = 0.4
+    private var soundMgr: SoundMgr!
 
     // MARK: - Singleton
 
-    static let shared = ComputerAI()
+    static let shared = ComputerAI(soundMgr: SoundMgr.shared)
 
     let humanPlayer: Int = 1
 
-    private init() {}
+    private init(soundMgr: SoundMgr) {
+        self.soundMgr = soundMgr
+    }
 
     // MARK: - Public Methods
 
@@ -77,6 +80,7 @@ class ComputerAI {
             for (index, card) in cards.enumerated() {
                 let delay = TimeInterval(index) * selectionDelay
                 DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                    self.soundMgr.playSelect()
                     card.setSelected(true)
                 }
             }

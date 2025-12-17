@@ -28,9 +28,10 @@ class DialogBoxView: SKNode {
     private var isEnabled: Bool = true
     private var sceneSize: CGSize = .zero
     private var isBlockTurn: Bool = false
+    private var style: DialogBoxStyle = .center
 
-    private let dialogWidth: CGFloat = 400
-    private let dialogHeight: CGFloat = 200
+    private let dialogWidth: CGFloat = 480
+    private let dialogHeight: CGFloat = 240
 
     init(sceneSize: CGSize, style: DialogBoxStyle = .center, text: String = "", blockTurn: Bool = false) {
         super.init()
@@ -38,6 +39,7 @@ class DialogBoxView: SKNode {
         self.sceneSize = sceneSize
         self.zPosition = 800
         self.isUserInteractionEnabled = true
+        self.style = style
         isBlockTurn = blockTurn
 
         setupOverlay(sceneSize: sceneSize)
@@ -69,10 +71,10 @@ class DialogBoxView: SKNode {
             imageName = "dialogbox_center"
         case .downward:
             imageName = "dialogbox_downward"
-            yOffset = -10
+            yOffset = -20
         case .upward:
             imageName = "dialogbox_upward"
-            yOffset = 10
+            yOffset = 20
         }
 
         dialogBox = SKSpriteNode(imageNamed: imageName)
@@ -85,13 +87,14 @@ class DialogBoxView: SKNode {
     private func setupText(text: String) {
         textLabel = SKLabelNode(fontNamed: "MarkerFelt-Wide")
         textLabel.text = text
-        textLabel.fontSize = 24
+        textLabel.fontSize = 28
         textLabel.fontColor = .white
         textLabel.numberOfLines = 0
         textLabel.preferredMaxLayoutWidth = dialogWidth - 40
         textLabel.verticalAlignmentMode = .center
         textLabel.horizontalAlignmentMode = .center
-        textLabel.position = CGPoint(x: 0, y: 0)
+        let yOffset = self.style == .center ? 0 : (self.style == .downward ? 20 : -20)
+        textLabel.position = CGPoint(x: 0, y: 0 + yOffset)
         textLabel.zPosition = 2
         dialogBox.addChild(textLabel)
     }

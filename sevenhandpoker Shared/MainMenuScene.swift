@@ -8,12 +8,15 @@
 import SpriteKit
 
 class MainMenuScene: SKScene, SpinButtonDelegate {
+    private var soundMgr: SoundMgr!
 
     private var backgroundNode: SKSpriteNode!
     private var titleNode: SKSpriteNode!
     private var startButton: SpinButton!
+    private var instructionButton: SpinButton!
     private var settingsButton: SKSpriteNode!
     private var soundButton: SKSpriteNode!
+
 
 
     class func newMenuScene() -> MainMenuScene {
@@ -25,8 +28,14 @@ class MainMenuScene: SKScene, SpinButtonDelegate {
     override func didMove(to view: SKView) {
         setupBackground()
         setupButtons()
+        setupMusic()
     }
 
+    private func setupMusic() {
+        soundMgr = SoundMgr.shared
+        soundMgr.setScene(self)
+        soundMgr.playBackgroundMusic()
+    }
     // MARK: - Setup
 
     private func setupBackground() {
@@ -44,12 +53,20 @@ class MainMenuScene: SKScene, SpinButtonDelegate {
     
     private func setupButtons() {
         // Start button
-        startButton = SpinButton(buttonImage: "play_btn", ringImage: "play_btn_ring", identifier: "play_button", size: CGSize(width: 120, height: 120))
-        startButton.position = CGPoint(x: size.width / 2 + 300, y: size.height / 2 - 120)
+        startButton = SpinButton(buttonImage: "play_btn", ringImage: "play_btn_ring", identifier: "play_button", size: CGSize(width: 120, height: 120), ringOffset: 35)
+        startButton.position = CGPoint(x: size.width / 2 + 360, y: size.height / 2 - 120)
         startButton.name = "play_button"
         startButton.delegate = self
         startButton.setEnabled(true)
         addChild(startButton)
+        
+        // tutorial button
+        instructionButton = SpinButton(buttonImage: "instruction_btn", ringImage: "instruction_btn_ring", identifier: "instruction_button", size: CGSize(width: 90, height: 90), ringOffset: 25)
+        instructionButton.position = CGPoint(x: size.width / 2 + 230, y: size.height / 2 - 220)
+        instructionButton.name = "instruction_button"
+        instructionButton.delegate = self
+        instructionButton.setEnabled(true)
+        addChild(instructionButton)
 
         // Settings button
         soundButton = createButton(imagedName: "sound_on_icon", width: 150, height: 150)
@@ -80,6 +97,10 @@ class MainMenuScene: SKScene, SpinButtonDelegate {
         case "play_button":
             // 處理 play 按鈕
             goToGame()
+            break
+        case "instruction_button":
+            goToInstruction()
+            break
         default:
             break
         }
@@ -110,6 +131,9 @@ class MainMenuScene: SKScene, SpinButtonDelegate {
         settingsButton.alpha = 1.0
 
         for node in touchedNodes {
+            if node.name == "soundButton" || node.parent?.name == "soundButton" {
+                changeSound()
+            }
             if node.name == "settingsButton" || node.parent?.name == "settingsButton" {
                 openSettings()
             }
@@ -119,13 +143,33 @@ class MainMenuScene: SKScene, SpinButtonDelegate {
     // MARK: - Navigation
 
     private func goToGame() {
-        let gameScene = GameScene.newGameScene()
+        let gameScene = GameScene.newGameScene(isTutorial: false)
         gameScene.scaleMode = .aspectFit
+        soundMgr.stopBackgroundMusic()
+
+        let transition = SKTransition.fade(withDuration: 0.5)
+        view?.presentScene(gameScene, transition: transition)
+    }
+    
+    private func goToInstruction() {
+        let gameScene = GameScene.newGameScene(isTutorial: true)
+        gameScene.scaleMode = .aspectFit
+        soundMgr.stopBackgroundMusic()
 
         let transition = SKTransition.fade(withDuration: 0.5)
         view?.presentScene(gameScene, transition: transition)
     }
 
+    private func changeSound() {
+        if (soundMgr.enable) {
+            soundMgr.disable()
+            soundButton.texture = SKTexture(imageNamed: "sound_off_icon")
+        } else {
+            soundMgr.enable = true
+            soundMgr.playBackgroundMusic()
+            soundButton.texture = SKTexture(imageNamed: "sound_on_icon")
+        }
+    }
     private func openSettings() {
         // TODO: Implement settings scene
         print("Settings tapped")

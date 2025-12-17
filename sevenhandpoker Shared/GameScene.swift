@@ -29,6 +29,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
     private var deckMgr: DeckMgr!
     private var computerAI: ComputerAI!
     private var toturialManager: InstructionMgr!
+    private var soundMgr: SoundMgr!
 
     // State Machine
     private var currentPhase: GamePhase = .idle {
@@ -40,7 +41,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
     private var pendingCompareWinner: PlayerType? = nil  // Winner waiting for confirmation
     private var lastPlacingPlayer: Int = 0  // Track who placed cards last (1 or 2)
     private var startPlayer: Int = 1
-    private var tutorialMode: Bool = true  //enable tutorial mode
+    private var tutorialMode: Bool = false  //enable tutorial mode
     private var tutorialSubIndex: Int = 0
 
     // Coin ownership: nil = unclaimed, player1/player2 = owned
@@ -94,10 +95,11 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
 
     // MARK: - Scene Setup
 
-    class func newGameScene(startPlayer: Int = 1) -> GameScene {
+    class func newGameScene(startPlayer: Int = 1, isTutorial: Bool = false) -> GameScene {
         let scene = GameScene(size: CGSize(width: 1400, height: 640))
         scene.scaleMode = .aspectFit
         scene.startPlayer = startPlayer
+        scene.tutorialMode = isTutorial
         return scene
     }
 
@@ -105,6 +107,10 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         deckMgr = DeckMgr.shared
         computerAI = ComputerAI.shared
         toturialManager = InstructionMgr.shared
+
+        // Setup sound manager with this scene
+        soundMgr = SoundMgr.shared
+        SoundMgr.shared.setScene(self)
 
         setupBackground()
         setupSlots()
@@ -516,8 +522,11 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
             let p1TargetX = getCardX(index: i, total: 13)
             let p1Move = SKAction.sequence([
                 SKAction.wait(forDuration: delay),
-                SKAction.move(to: CGPoint(x: p1TargetX, y: p1HandY), duration: 0.2),
-                SKAction.run { p1Card.zPosition = CGFloat(10 + i) }
+                SKAction.move(to: CGPoint(x: p1TargetX, y: p1HandY), duration: 0.3),
+                SKAction.run {
+                    p1Card.zPosition = CGFloat(10 + i)
+                    self.soundMgr.playTick()
+                }
             ])
             p1Card.run(p1Move)
 
@@ -532,10 +541,9 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
             let p2TargetX = getCardX(index: i, total: 13)
             let p2Move = SKAction.sequence([
                 SKAction.wait(forDuration: delay + 0.05),
-                SKAction.move(to: CGPoint(x: p2TargetX, y: p2HandY), duration: 0.2)
+                SKAction.move(to: CGPoint(x: p2TargetX, y: p2HandY), duration: 0.3)
             ])
             p2Card.run(p2Move)
-
             delay += dealInterval
         }
 
@@ -699,6 +707,8 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         print("Column col: \(col), size \(deckMgr.getColumnSize(player: player, col: col))")
 
         // Animate cards to slot
+        soundMgr.playPlace()
+
         let slotX = (size.width - 6 * slotSpacing) / 2 + CGFloat(col) * slotSpacing
         let slotY = player == 1 ? p1PokerY : p2PokerY
 
@@ -796,6 +806,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         confirmationDidDismiss()
         
         // Show comparison view
+        soundMgr.playCompare()
         showCompareColumnView(p1Cards: p1Cards, p1Type: p1Type,
                               p2Cards: p2Cards, p2Type: p2Type,
                               winner: winner)
@@ -988,7 +999,11 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
 
     private func showGameWinLoseView(isWin: Bool) {
         gameWinLoseView?.removeFromParent()
-
+        if (isWin) {
+            self.soundMgr.playVictory()
+        } else {
+            self.soundMgr.playLose()
+        }
         let winLoseView = GameWinLoseView(sceneSize: size, isWin: isWin)
         winLoseView.delegate = self
         addChild(winLoseView)
@@ -1020,6 +1035,10 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
     // This is now for turotial only
     func dialogBoxDidDismiss() {
         // Guard against multiple calls or calls when dialog already removed
+        if (!tutorialMode) {
+            return
+        }
+        
         guard let currentDialog = tutorialDialog else {
             print("Dialog debugging: dialogboxView is already nil, ignoring dismiss")
             return
@@ -1055,8 +1074,8 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
     }
     
     private func proceedToNextTurn() {
-        print("Proceedto next turn: \(tutorialDialog?.getBlockTurn())")
         if (tutorialMode && tutorialDialog?.getBlockTurn() != nil && tutorialDialog?.getBlockTurn() == true) {
+            print("Do not proceed to next turn in tutorial mode due to blockTurn: \(String(describing: tutorialDialog?.getBlockTurn()))")
             return;
         }
         let p1HandEmpty = deckMgr.player1Hand.isEmpty
@@ -1127,6 +1146,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
     }
 
     private func sortPlayerHand() {
+        soundMgr.playSort()
         lastSortType = (lastSortType + 1) % 2
         deckMgr.sortHand(player: 1, byNumber: lastSortType == 0)
         rearrangeHand(player: 1)
@@ -1135,6 +1155,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
     // MARK: - CardSpriteDelegate
 
     func cardClicked(_ card: CardSprite) {
+        self.soundMgr.playSelect()
         guard currentPhase == .player1Selecting else { return }
         let selectedCount = deckMgr.getSelectedCards(player: 1).count
         let cantSubmit: Bool = (selectedCount == 0 || selectedCount > 5)
