@@ -127,6 +127,10 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
             onEnterDealing()
         case .player1Selecting:
             if (tutorialMode) {
+                // Remove existing dialog before creating new one
+                dialogboxView?.removeFromParent()
+                dialogboxView = nil
+
                 dialogboxView = toturialManager.getIntructionDialog(scene: self, i: tutorialSubIndex)
                 if let dialogboxNode = dialogboxView {
                     addChild(dialogboxNode)
@@ -633,7 +637,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
     // MARK: - AI Actions
 
     private func aiPlacePlayer1Cards() {
-        let col = computerAI.chooseColumnForOpponent()
+        let col = tutorialMode ? 0 : computerAI.chooseColumnForOpponent()
         placeCardsToColumn(player: 1, col: col)
     }
 
@@ -1013,18 +1017,30 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
 
     // This is now for turotial only
     func dialogBoxDidDismiss() {
-        print("Dialog debugging, index: \(tutorialSubIndex),  \(dialogboxView == nil)")
-        //enable then remove
-        dialogboxView?.removeFromParent()
+        // Guard against multiple calls or calls when dialog already removed
+        guard let currentDialog = dialogboxView else {
+            print("Dialog debugging: dialogboxView is already nil, ignoring dismiss")
+            return
+        }
+
+        print("Dialog debugging, index: \(tutorialSubIndex)")
+
+        // Remove and clear reference
+        currentDialog.removeFromParent()
         dialogboxView = nil
-        
+
         if (tutorialMode) {
             tutorialSubIndex += 1
-            if (tutorialSubIndex < 13) {
+            if (tutorialSubIndex < InstructionMgr.shared.turtorialTexts.count) {
                 dialogboxView = toturialManager.getIntructionDialog(scene: self, i: tutorialSubIndex)
                 if let dialogboxNode = dialogboxView {
                     addChild(dialogboxNode)
                 }
+            } else if (tutorialSubIndex == InstructionMgr.shared.turtorialTexts.count) {
+                dialogboxView?.removeFromParent()
+                dialogboxView = nil
+                // Tutorial finished, game restart
+                startNewGame()
             }
         }
     }
