@@ -7,7 +7,7 @@
 
 import SpriteKit
 
-class MainMenuScene: SKScene, SpinButtonDelegate, SettingViewDelegate {
+class MainMenuScene: SKScene, SpinButtonDelegate, SettingViewDelegate, AchievementViewDelegate {
     private var soundMgr: SoundMgr!
 
     private var backgroundNode: SKSpriteNode!
@@ -16,8 +16,10 @@ class MainMenuScene: SKScene, SpinButtonDelegate, SettingViewDelegate {
     private var instructionButton: SpinButton!
     private var settingsButton: SKSpriteNode!
     private var soundButton: SKSpriteNode!
+    private var achievementButton: SKSpriteNode!
 
     private var settingView: SettingView?
+    private var achievementView: AchievementView?
 
 
 
@@ -46,6 +48,7 @@ class MainMenuScene: SKScene, SpinButtonDelegate, SettingViewDelegate {
         backgroundNode.zPosition = -1
         backgroundNode.size = size
         addChild(backgroundNode)
+        
         titleNode = SKSpriteNode(imageNamed: "title")
         titleNode.position = CGPoint(x: size.width / 2 + 300, y: size.height / 2 + 120)
         titleNode.zPosition = 0
@@ -80,6 +83,11 @@ class MainMenuScene: SKScene, SpinButtonDelegate, SettingViewDelegate {
         settingsButton.position = CGPoint(x: 150, y: 0)
         settingsButton.name = "settingsButton"
         addChild(settingsButton)
+        
+        achievementButton = createButton(imagedName: "achievement_icon", width: 150, height: 150)
+        achievementButton.position = CGPoint(x: size.width - 150, y: 0)
+        achievementButton.name = "achievementButton"
+        addChild(achievementButton)
     }
 
     private func createButton(imagedName: String, width: CGFloat, height: CGFloat) -> SKSpriteNode {
@@ -120,6 +128,9 @@ class MainMenuScene: SKScene, SpinButtonDelegate, SettingViewDelegate {
             if node.name == "settingsButton" || node.parent?.name == "settingsButton" {
                 settingsButton.alpha = 0.7
             }
+            if node.name == "achievementButton" || node.parent?.name == "achievementButton" {
+                achievementButton.alpha = 0.7
+            }
         }
     }
 
@@ -138,6 +149,9 @@ class MainMenuScene: SKScene, SpinButtonDelegate, SettingViewDelegate {
             }
             if node.name == "settingsButton" || node.parent?.name == "settingsButton" {
                 openSettings()
+            }
+            if node.name == "achievementButton" || node.parent?.name == "achievementButton" {
+                openAchievement()
             }
         }
     }
@@ -186,5 +200,21 @@ class MainMenuScene: SKScene, SpinButtonDelegate, SettingViewDelegate {
 
     func settingViewDidDismiss() {
         settingView = nil
+    }
+
+    // MARK: - AchievementViewDelegate
+
+    private func openAchievement() {
+        // Remove existing achievement view if any
+        achievementView?.removeFromParent()
+
+        // Create and show achievement view
+        achievementView = AchievementView(sceneSize: size)
+        achievementView?.delegate = self
+        addChild(achievementView!)
+    }
+
+    func achievementViewDidDismiss() {
+        achievementView = nil
     }
 }

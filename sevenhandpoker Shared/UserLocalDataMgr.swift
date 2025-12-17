@@ -23,6 +23,7 @@ class UserLocalDataMgr {
     private let mediumLossesKey = "mediumLosses"
     private let hardWinsKey = "hardWins"
     private let hardLossesKey = "hardLosses"
+    
     private let tutorialPlayedKey = "tutorialPlayed"
 
     // MARK: - Init

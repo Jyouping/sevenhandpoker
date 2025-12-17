@@ -18,6 +18,7 @@
 		7FE8B9C72EEFB49900E140DD /* Exceptions for "sevenhandpoker Shared" folder in "sevenhandpoker iOS" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				AchievementView.swift,
 				Actions.sks,
 				AdsLibs/AdConfig.swift,
 				AnimatedCoin.swift,
@@ -39,7 +40,6 @@
 				MainMenuScene.swift,
 				SettingView.swift,
 				SoundMgr.swift,
-				UserLocalDataMgr.swift,
 				sounds/click1.wav,
 				sounds/compare.mp3,
 				sounds/flush.wav,
@@ -53,6 +53,7 @@
 				sounds/Victory.wav,
 				SpinButton.swift,
 				SplashScene.swift,
+				UserLocalDataMgr.swift,
 			);
 			target = 7FE8B9B52EEFB49900E140DD /* sevenhandpoker iOS */;
 		};

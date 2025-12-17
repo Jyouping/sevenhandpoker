@@ -1180,13 +1180,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
     // MARK: - UI Helpers
 
     private func showMessage(_ text: String) {
-        messageLabel.text = text
-        messageLabel.alpha = 1.0
-        messageLabel.removeAllActions()
-        messageLabel.run(SKAction.sequence([
-            SKAction.wait(forDuration: 2.0),
-            SKAction.fadeOut(withDuration: 0.5)
-        ]))
+        print("Log message \(text)")
     }
 
     private func sortPlayerHand() {
