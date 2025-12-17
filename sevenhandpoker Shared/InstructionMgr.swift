@@ -27,13 +27,36 @@ class InstructionMgr {
         "And enjoy beating players\nfrom all over the world."
     ]
     
-    public func getIntructionDialog(sceneSize: CGSize, i : Int) -> DialogBoxView? {
+    public func getIntructionDialog(scene: SKScene, i : Int) -> DialogBoxView? {
         if (i > turtorialTexts.count) {
             return nil
         }
         switch i {
-        case 0...turtorialTexts.count - 1:
-            return DialogBoxView(sceneSize: sceneSize, style: .center, text: turtorialTexts[i])
+        case 0...2:
+            let view = DialogBoxView(sceneSize: scene.size, style: .center, text: turtorialTexts[i])
+            view.setEnabled(true)
+            view.delegate = scene as? GameScene
+            return view
+        case 3:
+            let view = DialogBoxView(sceneSize: scene.size, style: .center, text: turtorialTexts[i])
+            view.setEnabled(false)
+            view.delegate = scene as? GameScene
+            return view
+        case 4...7:
+            let view = DialogBoxView(sceneSize: scene.size, style: .center, text: turtorialTexts[i])
+            view.setEnabled(true)
+            view.delegate = scene as? GameScene
+            return view
+        case 8:
+            let view = DialogBoxView(sceneSize: scene.size, style: .center, text: turtorialTexts[i])
+            view.setEnabled(false)
+            view.delegate = scene as? GameScene
+            return view
+        case 9...turtorialTexts.count - 1:
+            let view = DialogBoxView(sceneSize: scene.size, style: .center, text: turtorialTexts[i])
+            view.setEnabled(true)
+            view.delegate = scene as? GameScene
+            return view
         default:
             return nil
         }

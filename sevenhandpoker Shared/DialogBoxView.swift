@@ -21,10 +21,12 @@ class DialogBoxView: SKNode {
 
     weak var delegate: DialogBoxDelegate?
 
+    private var backgroundOverlay: SKSpriteNode!
     private var dialogBox: SKSpriteNode!
     private var textLabel: SKLabelNode!
 
     private var isEnabled: Bool = true
+    private var sceneSize: CGSize = .zero
 
     private let dialogWidth: CGFloat = 400
     private let dialogHeight: CGFloat = 200
@@ -32,9 +34,11 @@ class DialogBoxView: SKNode {
     init(sceneSize: CGSize, style: DialogBoxStyle = .center, text: String = "") {
         super.init()
 
-        self.zPosition = 1100
+        self.sceneSize = sceneSize
+        self.zPosition = 800
         self.isUserInteractionEnabled = true
 
+        setupOverlay(sceneSize: sceneSize)
         setupDialog(sceneSize: sceneSize, style: style)
         setupText(text: text)
     }
@@ -44,6 +48,15 @@ class DialogBoxView: SKNode {
     }
 
     // MARK: - Setup
+
+    private func setupOverlay(sceneSize: CGSize) {
+        // Full-screen transparent overlay to capture all touches when enabled
+        backgroundOverlay = SKSpriteNode(color: .clear, size: sceneSize)
+        backgroundOverlay.position = CGPoint(x: sceneSize.width / 2, y: sceneSize.height / 2)
+        backgroundOverlay.zPosition = 0
+        backgroundOverlay.name = "dialogOverlay"
+        addChild(backgroundOverlay)
+    }
 
     private func setupDialog(sceneSize: CGSize, style: DialogBoxStyle) {
         let imageName: String
@@ -64,7 +77,6 @@ class DialogBoxView: SKNode {
         dialogBox.size = CGSize(width: dialogWidth, height: dialogHeight)
         dialogBox.position = CGPoint(x: sceneSize.width / 2, y: sceneSize.height / 2 + yOffset)
         dialogBox.zPosition = 1
-        setEnabled(true)
         addChild(dialogBox)
     }
 
@@ -90,6 +102,10 @@ class DialogBoxView: SKNode {
 
     func setEnabled(_ enabled: Bool) {
         isEnabled = enabled
+        // When enabled, show overlay to capture all touches
+        // When disabled, hide overlay so touches pass through
+        backgroundOverlay.isHidden = !enabled
+        self.isUserInteractionEnabled = enabled
     }
 
     func getEnabled() -> Bool {

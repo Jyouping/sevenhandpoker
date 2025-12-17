@@ -33,13 +33,13 @@ class DeckMgr {
 
     // MARK: - Deck Initialization
 
-    func initDeck() {
+    func initDeck(initSeedNum: Int? = nil) {
         deck.removeAll()
         for i in 1...52 {
             let card = Card(number: i)
             deck.append(card)
         }
-        seedNumber = Int.random(in: 0..<10000)
+        seedNumber = (initSeedNum != nil) ? initSeedNum! : Int.random(in: 0..<10000)
         shuffleNum()
         deckPos = 0
 
@@ -59,7 +59,8 @@ class DeckMgr {
 
     func setSeed(_ number: Int) {
         seedNumber = number
-        shuffleNum()
+        // this will clean out entire deck
+        initDeck(initSeedNum: number)
     }
 
     func getSeed() -> Int {

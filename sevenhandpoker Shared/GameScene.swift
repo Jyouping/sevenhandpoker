@@ -22,12 +22,13 @@ enum GamePhase {
     case gameOver           // Game ended
 }
 
-class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigureDelegate, CompareColumnDelegate, GameWinLoseDelegate {
+class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigureDelegate, CompareColumnDelegate, GameWinLoseDelegate, DialogBoxDelegate {
 
     // MARK: - Properties
 
     private var deckMgr: DeckMgr!
     private var computerAI: ComputerAI!
+    private var toturialManager: InstructionMgr!
 
     // State Machine
     private var currentPhase: GamePhase = .idle {
@@ -39,6 +40,8 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
     private var pendingCompareWinner: PlayerType? = nil  // Winner waiting for confirmation
     private var lastPlacingPlayer: Int = 0  // Track who placed cards last (1 or 2)
     private var startPlayer: Int = 1
+    private var tutorialMode: Bool = true  //enable tutorial mode
+    private var tutorialSubIndex: Int = 0
 
     // Coin ownership: nil = unclaimed, player1/player2 = owned
     private var coinOwners: [PlayerType?] = Array(repeating: nil, count: 7)
@@ -63,6 +66,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
     private var confirmationView: DeckConfirmationView?
     private var compareColumnView: CompareColumnView?
     private var gameWinLoseView: GameWinLoseView?
+    private var dialogboxView: DialogBoxView?
 
     // Buttons
     private var submitButton: SKSpriteNode!
@@ -98,6 +102,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
     override func didMove(to view: SKView) {
         deckMgr = DeckMgr.shared
         computerAI = ComputerAI.shared
+        toturialManager = InstructionMgr.shared
 
         setupBackground()
         setupSlots()
@@ -121,6 +126,12 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         case .dealing:
             onEnterDealing()
         case .player1Selecting:
+            if (tutorialMode) {
+                dialogboxView = toturialManager.getIntructionDialog(scene: self, i: tutorialSubIndex)
+                if let dialogboxNode = dialogboxView {
+                    addChild(dialogboxNode)
+                }
+            }
             onEnterPlayer1Selecting()
         case .player1Confirming:
             break // Handled by showConfirmationView
@@ -215,6 +226,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
     }
 
     private func onEnterPlayer2Selecting() {
+        dialogBoxDidDismiss()
         // AI selects cards
         computerAI.selectCards()
 
@@ -443,7 +455,11 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
 
     private func startNewGame() {
         // Reset deck manager
-        deckMgr.initDeck()
+        if (tutorialMode) {
+            deckMgr.initDeck(initSeedNum: 1)
+        } else {
+            deckMgr.initDeck()
+        }
         coinOwners = Array(repeating: nil, count: 7)
 
         // Remove tie coins from previous game
@@ -546,6 +562,15 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
             showMessage("Select 1-5 cards!")
             return
         }
+        if (tutorialMode) {
+            //note K equals to 11
+            if (selected.count != 2 || selected[0].getNumber() != 11 || selected[1].getNumber() != 11) {
+                for card in selected {
+                    card.setSelected(false)
+                }
+                return;
+            }
+        }
 
         currentPhase = .player1Confirming
         showConfirmationView(for: selected)
@@ -570,6 +595,8 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         confirmationView?.removeFromParent()
         confirmationView = nil
 
+        dialogBoxDidDismiss()
+        
         currentPhase = .player1Waiting
     }
 
@@ -648,6 +675,12 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
     }
 
     private func placeCardsToColumn(player: Int, col: Int) {
+        if (tutorialMode) {
+            if (player == 2 && col != 0) {
+                print("Player is not putting into correct columns")
+                return;
+            }
+        }
         hidePlaceButtons()
 
         // Track who placed cards last for turn order after comparing
@@ -671,6 +704,8 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
             card.moveTo(position: targetPos, duration: 0.3)
             card.zPosition = CGFloat(20 + i)
         }
+        
+        dialogBoxDidDismiss()
 
         // Draw new cards
         run(SKAction.sequence([
@@ -973,7 +1008,27 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         let transition = SKTransition.fade(withDuration: 0.5)
         view?.presentScene(mainMenu, transition: transition)
     }
+    
+    // MARK: - Dialogbox delegate
 
+    // This is now for turotial only
+    func dialogBoxDidDismiss() {
+        print("Dialog debugging, index: \(tutorialSubIndex),  \(dialogboxView == nil)")
+        //enable then remove
+        dialogboxView?.removeFromParent()
+        dialogboxView = nil
+        
+        if (tutorialMode) {
+            tutorialSubIndex += 1
+            if (tutorialSubIndex < 13) {
+                dialogboxView = toturialManager.getIntructionDialog(scene: self, i: tutorialSubIndex)
+                if let dialogboxNode = dialogboxView {
+                    addChild(dialogboxNode)
+                }
+            }
+        }
+    }
+    
     private func proceedToNextTurn() {
         let p1HandEmpty = deckMgr.player1Hand.isEmpty
         let p2HandEmpty = deckMgr.player2Hand.isEmpty
