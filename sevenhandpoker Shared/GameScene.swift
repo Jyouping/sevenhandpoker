@@ -781,30 +781,41 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
     }
 
     private func drawNewCards(forPlayer player: Int, count: Int) {
+        rearrangeHand(player: player, resetY: false)
+        drawNextCard(forPlayer: player, remaining: count, cardIndex: 0)
+    }
+
+    private func drawNextCard(forPlayer player: Int, remaining: Int, cardIndex: Int) {
+        guard remaining > 0, deckMgr.canDrawCard() else {
+            // All cards drawn, rearrange hand
+            if cardIndex > 0 {
+                rearrangeHand(player: player, resetY: true)
+            }
+            return
+        }
+        
+        soundMgr.playTick()
+
         let hand = player == 1 ? deckMgr.player1Hand : deckMgr.player2Hand
         let faceUp = player == 1
-        let y = player == 1 ? p1HandY : p2HandY
 
-        rearrangeHand(player: player, resetY: false)
+        let newCard = deckMgr.drawCardSprite(owner: player, faceUp: faceUp)
+        newCard.setScale(cardScale)
+        newCard.position = commonDeckNode.position
+        newCard.zPosition = CGFloat(10 + hand.count + cardIndex)
+        newCard.delegate = self
+        addChild(newCard)
 
-        var cardsDrawn = 0
-        for i in 0..<count {
-            guard deckMgr.canDrawCard() else { break }
+        // Rearrange after each card is added
+        rearrangeHand(player: player, resetY: true)
 
-            let newCard = deckMgr.drawCardSprite(owner: player, faceUp: faceUp)
-            newCard.setScale(cardScale)
-            newCard.position = commonDeckNode.position
-            newCard.zPosition = CGFloat(10 + hand.count + i)
-            newCard.delegate = self
-            addChild(newCard)
-
-            cardsDrawn += 1
-        }
-
-        //Need to reset evey card's y index when draw new card
-        if cardsDrawn > 0 {
-            rearrangeHand(player: player, resetY: true)
-        }
+        // Wait and draw next card
+        run(SKAction.sequence([
+            SKAction.wait(forDuration: 0.15),
+            SKAction.run { [weak self] in
+                self?.drawNextCard(forPlayer: player, remaining: remaining - 1, cardIndex: cardIndex + 1)
+            }
+        ]))
     }
 
     private func rearrangeHand(player: Int, resetY: Bool = false) {
@@ -1230,6 +1241,8 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
             if name == "dealButton" && !dealButton.isHidden {
                 startNewGame()
             } else if name == "submitButton" && !submitButton.isHidden && currentPhase == .player1Selecting {
+                submitButton.alpha = 0.7
+                submitButton.setScale(0.9)
                 player1Submit()
             } else if name == "sortButton" && !sortButton.isHidden {
                 // Press down effect
