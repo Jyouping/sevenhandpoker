@@ -104,7 +104,8 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         let scene = GameScene(size: CGSize(width: 1400, height: 640))
         scene.scaleMode = .aspectFit
         scene.startPlayer = startPlayer
-        scene.tutorialMode = isTutorial
+        //First time user will execute tutorial mode
+        scene.tutorialMode = !UserLocalDataMgr.shared.getTutorialPlayed() ? true: isTutorial;
         return scene
     }
 
@@ -1035,6 +1036,17 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         } else {
             self.soundMgr.playLose()
         }
+
+        // Record win/loss statistics (only if not in tutorial mode)
+        if !tutorialMode {
+            let currentDifficulty = computerAI.getLevel()
+            if isWin {
+                UserLocalDataMgr.shared.recordWin(difficulty: currentDifficulty)
+            } else {
+                UserLocalDataMgr.shared.recordLoss(difficulty: currentDifficulty)
+            }
+        }
+
         let winLoseView = GameWinLoseView(sceneSize: size, isWin: isWin)
         winLoseView.delegate = self
         addChild(winLoseView)
@@ -1096,6 +1108,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
                 tutorialDialog = nil
                 // Tutorial finished, game restart
                 tutorialMode = false
+                UserLocalDataMgr.shared.recordTutorialPlayed()
                 startNewGame()
             }
             if (shouldProceedToNextTurn) {

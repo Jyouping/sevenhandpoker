@@ -223,15 +223,22 @@ class ComputerAI {
         var bestCol = 0
         var foundEmpty = false
 
-        for col in 0..<7 {
+        let startPos = Int.random(in: 0...6)
+        for col in startPos..<7 {
             if DeckMgr.shared.getColumnSize(player: humanPlayer, col: col) == 0 {
                 bestCol = col
-                foundEmpty = true
-                break
+                return bestCol;
             }
         }
-
-        return foundEmpty ? bestCol : 0
+        for col in 0..<startPos  {
+            if DeckMgr.shared.getColumnSize(player: humanPlayer, col: col) == 0 {
+                bestCol = col
+                return bestCol;
+            }
+        }
+        
+        print("Medium computer cannot found place to put, uou should not reach here!")
+        return 0
     }
 
     private func chooseColumnHard() -> Int {

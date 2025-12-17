@@ -39,6 +39,7 @@
 				MainMenuScene.swift,
 				SettingView.swift,
 				SoundMgr.swift,
+				UserLocalDataMgr.swift,
 				sounds/click1.wav,
 				sounds/compare.mp3,
 				sounds/flush.wav,
