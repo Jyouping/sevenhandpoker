@@ -66,7 +66,9 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
     private var confirmationView: DeckConfirmationView?
     private var compareColumnView: CompareColumnView?
     private var gameWinLoseView: GameWinLoseView?
-    private var dialogboxView: DialogBoxView?
+    
+    //Note: there are complex logic regarding tutorialDialog, you need to search tutorial == 1
+    private var tutorialDialog: DialogBoxView?
 
     // Buttons
     private var submitButton: SKSpriteNode!
@@ -128,11 +130,11 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         case .player1Selecting:
             if (tutorialMode) {
                 // Remove existing dialog before creating new one
-                dialogboxView?.removeFromParent()
-                dialogboxView = nil
+                tutorialDialog?.removeFromParent()
+                tutorialDialog = nil
 
-                dialogboxView = toturialManager.getIntructionDialog(scene: self, i: tutorialSubIndex)
-                if let dialogboxNode = dialogboxView {
+                tutorialDialog = toturialManager.getIntructionDialog(scene: self, i: tutorialSubIndex)
+                if let dialogboxNode = tutorialDialog {
                     addChild(dialogboxNode)
                 }
             }
@@ -211,6 +213,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         for card in deckMgr.player1Hand {
             card.setEnabled(false)
         }
+        
 
         showMessage("CPU choosing position...")
         hidePokerButtons()
@@ -230,9 +233,9 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
     }
 
     private func onEnterPlayer2Selecting() {
-        dialogBoxDidDismiss()
-        // AI selects cards
+        // AI selects cards (with animation if animatedSelection is true)
         computerAI.selectCards()
+        //dialogBoxDidDismiss()
 
         let selected = deckMgr.getSelectedCards(player: 2)
 
@@ -240,7 +243,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
 
         headNodes[0].changeAnimationState(HeadFigure.AnimationState.hidden)
         headNodes[1].changeAnimationState(HeadFigure.AnimationState.myTurn)
-        
+
         // Wait then proceed to player placing
         run(SKAction.sequence([
             SKAction.wait(forDuration: 1.5),
@@ -599,8 +602,6 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         confirmationView?.removeFromParent()
         confirmationView = nil
 
-        dialogBoxDidDismiss()
-        
         currentPhase = .player1Waiting
     }
 
@@ -709,8 +710,6 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
             card.zPosition = CGFloat(20 + i)
         }
         
-        dialogBoxDidDismiss()
-
         // Draw new cards
         run(SKAction.sequence([
             SKAction.wait(forDuration: 0.4),
@@ -731,6 +730,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
                     self.pendingColumn = col
                     self.currentPhase = .comparing
                 } else {
+                    dialogBoxDidDismiss()
                     self.proceedToNextTurn()
                 }
             }
@@ -852,6 +852,8 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
 
         pendingColumn = -1
         pendingCompareWinner = nil
+
+        dialogBoxDidDismiss()
 
         run(SKAction.sequence([
             SKAction.wait(forDuration: 0.5),
@@ -1018,7 +1020,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
     // This is now for turotial only
     func dialogBoxDidDismiss() {
         // Guard against multiple calls or calls when dialog already removed
-        guard let currentDialog = dialogboxView else {
+        guard let currentDialog = tutorialDialog else {
             print("Dialog debugging: dialogboxView is already nil, ignoring dismiss")
             return
         }
@@ -1026,26 +1028,37 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         print("Dialog debugging, index: \(tutorialSubIndex)")
 
         // Remove and clear reference
+        // resume block turn if needed
+        let shouldProceedToNextTurn: Bool = tutorialMode && currentDialog.getBlockTurn()
+
         currentDialog.removeFromParent()
-        dialogboxView = nil
+        tutorialDialog = nil
 
         if (tutorialMode) {
             tutorialSubIndex += 1
             if (tutorialSubIndex < InstructionMgr.shared.turtorialTexts.count) {
-                dialogboxView = toturialManager.getIntructionDialog(scene: self, i: tutorialSubIndex)
-                if let dialogboxNode = dialogboxView {
+                tutorialDialog = toturialManager.getIntructionDialog(scene: self, i: tutorialSubIndex)
+                if let dialogboxNode = tutorialDialog {
                     addChild(dialogboxNode)
                 }
             } else if (tutorialSubIndex == InstructionMgr.shared.turtorialTexts.count) {
-                dialogboxView?.removeFromParent()
-                dialogboxView = nil
+                tutorialDialog?.removeFromParent()
+                tutorialDialog = nil
                 // Tutorial finished, game restart
+                tutorialMode = false
                 startNewGame()
+            }
+            if (shouldProceedToNextTurn) {
+                proceedToNextTurn()
             }
         }
     }
     
     private func proceedToNextTurn() {
+        print("Proceedto next turn: \(tutorialDialog?.getBlockTurn())")
+        if (tutorialMode && tutorialDialog?.getBlockTurn() != nil && tutorialDialog?.getBlockTurn() == true) {
+            return;
+        }
         let p1HandEmpty = deckMgr.player1Hand.isEmpty
         let p2HandEmpty = deckMgr.player2Hand.isEmpty
 

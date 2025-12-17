@@ -11,11 +11,13 @@ class ComputerAI {
     // MARK: - Properties
 
     private var level: Int = 1  // 0=Easy, 1=Medium, 2=Hard
+    var animatedSelection: Bool = true
+    private let selectionDelay: TimeInterval = 0.4
 
     // MARK: - Singleton
 
     static let shared = ComputerAI()
-    
+
     let humanPlayer: Int = 1
 
     private init() {}
@@ -69,13 +71,28 @@ class ComputerAI {
 
     // MARK: - Card Selection Strategies
 
+    /// Select cards with optional animation delay
+    private func selectCardsAnimated(_ cards: [CardSprite]) {
+        if animatedSelection {
+            for (index, card) in cards.enumerated() {
+                let delay = TimeInterval(index) * selectionDelay
+                DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                    card.setSelected(true)
+                }
+            }
+        } else {
+            for card in cards {
+                card.setSelected(true)
+            }
+        }
+    }
+
     private func selectEasy(deck: [CardSprite]) {
         // Easy: randomly select 1-2 cards
         let count = Int.random(in: 1...min(2, deck.count))
         let shuffled = deck.shuffled()
-        for i in 0..<count {
-            shuffled[i].setSelected(true)
-        }
+        let cardsToSelect = Array(shuffled.prefix(count))
+        selectCardsAnimated(cardsToSelect)
     }
 
     private func selectMedium(deck: [CardSprite]) {
@@ -85,15 +102,14 @@ class ComputerAI {
         // Look for pairs
         for i in 0..<(sortedDeck.count - 1) {
             if sortedDeck[i].getNumber() == sortedDeck[i + 1].getNumber() {
-                sortedDeck[i].setSelected(true)
-                sortedDeck[i + 1].setSelected(true)
+                selectCardsAnimated([sortedDeck[i], sortedDeck[i + 1]])
                 return
             }
         }
 
         // No pair found - select highest card
         if let highCard = sortedDeck.last {
-            highCard.setSelected(true)
+            selectCardsAnimated([highCard])
         }
     }
 
@@ -114,17 +130,13 @@ class ComputerAI {
 
         // Priority 1: Four of a kind
         for (_, cards) in numberCounts where cards.count >= 4 {
-            for card in cards.prefix(4) {
-                card.setSelected(true)
-            }
+            selectCardsAnimated(Array(cards.prefix(4)))
             return
         }
 
         // Priority 2: Three of a kind
         for (_, cards) in numberCounts where cards.count >= 3 {
-            for card in cards.prefix(3) {
-                card.setSelected(true)
-            }
+            selectCardsAnimated(Array(cards.prefix(3)))
             return
         }
 
@@ -134,20 +146,16 @@ class ComputerAI {
 
         if pairs.count >= 2 {
             // Select top two pairs
-            for card in pairs[0].value.prefix(2) {
-                card.setSelected(true)
-            }
-            for card in pairs[1].value.prefix(2) {
-                card.setSelected(true)
-            }
+            var cardsToSelect: [CardSprite] = []
+            cardsToSelect.append(contentsOf: pairs[0].value.prefix(2))
+            cardsToSelect.append(contentsOf: pairs[1].value.prefix(2))
+            selectCardsAnimated(cardsToSelect)
             return
         }
 
         // Priority 4: Single pair (higher value)
         if let highestPair = pairs.first {
-            for card in highestPair.value.prefix(2) {
-                card.setSelected(true)
-            }
+            selectCardsAnimated(Array(highestPair.value.prefix(2)))
             return
         }
 
@@ -155,24 +163,20 @@ class ComputerAI {
         for (_, cards) in colorCounts where cards.count >= 4 {
             // Select up to 5 cards for flush
             let sortedByNumber = cards.sorted { $0.getNumber() > $1.getNumber() }
-            for card in sortedByNumber.prefix(5) {
-                card.setSelected(true)
-            }
+            selectCardsAnimated(Array(sortedByNumber.prefix(5)))
             return
         }
 
         // Priority 6: Straight potential
         if let straightCards = findStraightPotential(deck: deck) {
-            for card in straightCards {
-                card.setSelected(true)
-            }
+            selectCardsAnimated(straightCards)
             return
         }
 
         // Default: select highest card
         let sortedDeck = deck.sorted { $0.getNumber() > $1.getNumber() }
         if let highCard = sortedDeck.first {
-            highCard.setSelected(true)
+            selectCardsAnimated([highCard])
         }
     }
 

@@ -27,16 +27,18 @@ class DialogBoxView: SKNode {
 
     private var isEnabled: Bool = true
     private var sceneSize: CGSize = .zero
+    private var isBlockTurn: Bool = false
 
     private let dialogWidth: CGFloat = 400
     private let dialogHeight: CGFloat = 200
 
-    init(sceneSize: CGSize, style: DialogBoxStyle = .center, text: String = "") {
+    init(sceneSize: CGSize, style: DialogBoxStyle = .center, text: String = "", blockTurn: Bool = false) {
         super.init()
 
         self.sceneSize = sceneSize
         self.zPosition = 800
         self.isUserInteractionEnabled = true
+        isBlockTurn = blockTurn
 
         setupOverlay(sceneSize: sceneSize)
         setupDialog(sceneSize: sceneSize, style: style)
@@ -110,6 +112,10 @@ class DialogBoxView: SKNode {
 
     func getEnabled() -> Bool {
         return isEnabled
+    }
+    
+    func getBlockTurn() -> Bool {
+        return isBlockTurn
     }
 
     // MARK: - Touch Handling

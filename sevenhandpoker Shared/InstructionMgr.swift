@@ -42,7 +42,12 @@ class InstructionMgr {
             view.setEnabled(false)
             view.delegate = scene as? GameScene
             return view
-        case 4...7:
+        case 4...5:
+            let view = DialogBoxView(sceneSize: scene.size, style: .center, text: turtorialTexts[i], blockTurn: true)
+            view.setEnabled(true)
+            view.delegate = scene as? GameScene
+            return view
+        case 6...7:
             let view = DialogBoxView(sceneSize: scene.size, style: .center, text: turtorialTexts[i])
             view.setEnabled(true)
             view.delegate = scene as? GameScene
