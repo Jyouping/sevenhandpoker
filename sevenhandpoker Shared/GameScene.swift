@@ -75,6 +75,8 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
     private var submitButton: SKSpriteNode!
     private var sortButton: SKSpriteNode!
     private var dealButton: SKSpriteNode!
+    private var quitButton: SKSpriteNode!
+
 
     // Labels
     private var messageLabel: SKLabelNode!
@@ -370,7 +372,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         dealButton.zPosition = 100
         addChild(dealButton)
 
-        // Submit button, only used for debugging purpose, will not be show anywhere
+        // Submit button
         submitButton = SKSpriteNode(imageNamed: "submit_btn")
         submitButton.size = CGSize(width: 100, height: 100)
         submitButton.position = CGPoint(x: size.width - 200, y: size.height / 2 - 100)
@@ -388,6 +390,15 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         sortButton.zPosition = 100
         addChild(sortButton)
 
+        // Quit button
+        quitButton = SKSpriteNode(imageNamed: "quit_btn")
+        quitButton.size = CGSize(width: 150, height: 150)
+        quitButton.name = "quitButton"
+        quitButton.anchorPoint = CGPoint(x: 0, y: 1)
+        quitButton.position = CGPoint(x: 0, y: size.height)
+        quitButton.zPosition = 100
+        addChild(quitButton)
+        
         // Place buttons
         let startX: CGFloat = (size.width - 6 * slotSpacing) / 2
         for i in 0..<7 {
@@ -1195,9 +1206,12 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
                 if let col = Int(name.replacingOccurrences(of: "placeBtn_", with: "")) {
                     placeCardsToColumn(player: 2, col: col)
                 }
+            } else if name == "quitButton" && !quitButton.isHidden {
+                quitButton.alpha = 0.7
             }
         }
     }
+    
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
         // Reset sortButton visual state
@@ -1213,6 +1227,9 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
 
             if name == "sortButton" && !sortButton.isHidden {
                 sortPlayerHand()
+            }
+            if name == "quitButton" && !quitButton.isHidden {
+                saveAndExit()
             }
 
             // Check for p1Poker button clicks
@@ -1272,5 +1289,12 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
 
     override func update(_ currentTime: TimeInterval) {
         // Game loop updates if needed
+    }
+    
+    //TODO: save is not implemented yet
+    func saveAndExit() {
+        let mainMenu = MainMenuScene.newMenuScene()
+        let transition = SKTransition.fade(withDuration: 0.5)
+        view?.presentScene(mainMenu, transition: transition)
     }
 }
