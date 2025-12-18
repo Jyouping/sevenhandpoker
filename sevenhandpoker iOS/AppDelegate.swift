@@ -7,6 +7,8 @@
 
 import UIKit
 import GoogleMobileAds
+import FirebaseCore
+import FirebaseAnalytics
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -15,6 +17,20 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        // Initialize Firebase
+        FirebaseApp.configure()
+
+        // Enable tracking by default (can be changed in settings)
+        if UserDefaults.standard.object(forKey: "tracking_enabled") == nil {
+            TrackingManager.shared.enableTracking()
+        }
+
+        // Track app launch
+        TrackingManager.shared.trackAppLaunch()
+
+        // Set user language property
+        let languageCode = Locale.current.language.languageCode?.identifier ?? "en"
+
         // Initialize Google Mobile Ads SDK
         MobileAds.shared.start { _ in
             print("Google Mobile Ads SDK initialized")
@@ -34,10 +50,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func applicationDidEnterBackground(_ application: UIApplication) {
         // Use this method to release shared resources, save user data, invalidate timers, and store enough application state information to restore your application to its current state in case it is terminated later.
         // If your application supports background execution, this method is called instead of applicationWillTerminate: when the user quits.
+        TrackingManager.shared.trackAppBackground()
     }
 
     func applicationWillEnterForeground(_ application: UIApplication) {
         // Called as part of the transition from the background to the active state; here you can undo many of the changes made on entering the background.
+        TrackingManager.shared.trackAppForeground()
     }
 
     func applicationDidBecomeActive(_ application: UIApplication) {

@@ -207,16 +207,28 @@ class SettingView: SKNode {
 
         for node in touchedNodes {
             if node.name == "easyButton" || node.parent?.name == "easyButton" {
+                let oldDifficulty = ComputerAI.shared.getLevel()
                 ComputerAI.shared.setLevel(0)
                 updateDifficultySelection()
+                if oldDifficulty != 0 {
+                    TrackingManager.shared.trackDifficultyChanged(from: oldDifficulty, to: 0)
+                }
             }
             if node.name == "mediumButton" || node.parent?.name == "mediumButton" {
+                let oldDifficulty = ComputerAI.shared.getLevel()
                 ComputerAI.shared.setLevel(1)
                 updateDifficultySelection()
+                if oldDifficulty != 1 {
+                    TrackingManager.shared.trackDifficultyChanged(from: oldDifficulty, to: 1)
+                }
             }
             if node.name == "hardButton" || node.parent?.name == "hardButton" {
+                let oldDifficulty = ComputerAI.shared.getLevel()
                 ComputerAI.shared.setLevel(2)
                 updateDifficultySelection()
+                if oldDifficulty != 2 {
+                    TrackingManager.shared.trackDifficultyChanged(from: oldDifficulty, to: 2)
+                }
             }
             if node.name == "okButton" || node.parent?.name == "okButton" {
                 dismiss()

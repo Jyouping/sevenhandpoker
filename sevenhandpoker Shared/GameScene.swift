@@ -97,6 +97,9 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
     // Ad tracking
     private var playerActionCount: Int = 0
 
+    // Game tracking
+    private var gameStartTime: Date?
+
     // MARK: - Scene Setup
 
     class func newGameScene(startPlayer: Int = 1, isTutorial: Bool = false) -> GameScene {
@@ -117,6 +120,12 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         soundMgr = SoundMgr.shared
         SoundMgr.shared.setScene(self)
 
+        // Track screen view and game start
+        TrackingManager.shared.trackScreen(tutorialMode ? "GameTutorial" : "Game")
+        let difficulty = ComputerAI.shared.getLevel()
+        TrackingManager.shared.trackGameStart(difficulty: difficulty, isTutorial: tutorialMode)
+        gameStartTime = Date()
+
         setupBackground()
         setupSlots()
         setupCoins()
@@ -124,7 +133,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         setupLabels()
         setupCommonDeck()
         setupHeads()
-        
+
         currentPhase = .idle
     }
 
@@ -1055,6 +1064,15 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
                 UserLocalDataMgr.shared.recordWin(difficulty: currentDifficulty)
             } else {
                 UserLocalDataMgr.shared.recordLoss(difficulty: currentDifficulty)
+            }
+
+            // Track game end
+            let duration = gameStartTime.map { Date().timeIntervalSince($0) } ?? 0
+            TrackingManager.shared.trackGameEnd(isWin: isWin, difficulty: currentDifficulty, duration: duration)
+        } else {
+            // Track tutorial completion
+            if isWin {
+                TrackingManager.shared.trackTutorialComplete()
             }
         }
 

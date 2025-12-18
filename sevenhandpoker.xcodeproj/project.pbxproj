@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		7FE8CCDF2EF29E5500E140DD /* GoogleMobileAds in Frameworks */ = {isa = PBXBuildFile; productRef = 7FE8CCDE2EF29E5500E140DD /* GoogleMobileAds */; };
+		7FE8DAC82EF39B4500E140DD /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 7FE8DAC72EF39B4500E140DD /* FirebaseAnalytics */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -54,6 +55,7 @@
 				SpinButton.swift,
 				SplashScene.swift,
 				TipManager.swift,
+				TrackingManager.swift,
 				UserLocalDataMgr.swift,
 			);
 			target = 7FE8B9B52EEFB49900E140DD /* sevenhandpoker iOS */;
@@ -96,6 +98,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7FE8DAC82EF39B4500E140DD /* FirebaseAnalytics in Frameworks */,
 				7FE8CCDF2EF29E5500E140DD /* GoogleMobileAds in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -143,6 +146,7 @@
 			name = "sevenhandpoker iOS";
 			packageProductDependencies = (
 				7FE8CCDE2EF29E5500E140DD /* GoogleMobileAds */,
+				7FE8DAC72EF39B4500E140DD /* FirebaseAnalytics */,
 			);
 			productName = "sevenhandpoker iOS";
 			productReference = 7FE8B9B62EEFB49900E140DD /* sevenhandpoker.app */;
@@ -174,6 +178,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				7FE8CCDD2EF29E5500E140DD /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */,
+				7FE8DAC62EF39B4500E140DD /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 7FE8B9B72EEFB49900E140DD /* Products */;
@@ -431,6 +436,14 @@
 				minimumVersion = 12.14.0;
 			};
 		};
+		7FE8DAC62EF39B4500E140DD /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.7.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -438,6 +451,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 7FE8CCDD2EF29E5500E140DD /* XCRemoteSwiftPackageReference "swift-package-manager-google-mobile-ads" */;
 			productName = GoogleMobileAds;
+		};
+		7FE8DAC72EF39B4500E140DD /* FirebaseAnalytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7FE8DAC62EF39B4500E140DD /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAnalytics;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

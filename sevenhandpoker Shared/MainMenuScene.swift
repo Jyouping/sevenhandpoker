@@ -29,7 +29,8 @@ class MainMenuScene: SKScene, SpinButtonDelegate, SettingViewDelegate, Achieveme
         return scene
     }
 
-    override func didMove(to view: SKView) {        
+    override func didMove(to view: SKView) {
+        TrackingManager.shared.trackScreen("MainMenu")
         setupBackground()
         setupButtons()
         setupMusic()
@@ -194,6 +195,7 @@ class MainMenuScene: SKScene, SpinButtonDelegate, SettingViewDelegate, Achieveme
         settingView = SettingView(sceneSize: size)
         settingView?.delegate = self
         addChild(settingView!)
+        TrackingManager.shared.trackScreen("Settings")
     }
 
     // MARK: - SettingViewDelegate
@@ -212,6 +214,7 @@ class MainMenuScene: SKScene, SpinButtonDelegate, SettingViewDelegate, Achieveme
         achievementView = AchievementView(sceneSize: size)
         achievementView?.delegate = self
         addChild(achievementView!)
+        TrackingManager.shared.trackAchievementViewed()
     }
 
     func achievementViewDidDismiss() {

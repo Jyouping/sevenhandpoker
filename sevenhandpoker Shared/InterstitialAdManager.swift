@@ -97,5 +97,6 @@ extension InterstitialAdManager: FullScreenContentDelegate {
 
     func adWillPresentFullScreenContent(_ ad: FullScreenPresentingAd) {
         print("Interstitial ad will present")
+        TrackingManager.shared.trackAdShown(type: "interstitial")
     }
 }
