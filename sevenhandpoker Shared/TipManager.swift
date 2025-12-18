@@ -11,7 +11,7 @@ class TipManager {
     static let shared = TipManager()
 
     // Probability of showing a tip (0.0 to 1.0)
-    private let tipChance: Double = 0.5
+    private let tipChance: Double = 0.8
 
     // Track shown tips to avoid repetition
     private var recentlyShownTips: [Int] = []
@@ -95,22 +95,27 @@ class TipManager {
 
     // Get current language tips based on device locale
     private var tips: [String] {
-        let languageCode = Locale.current.language.languageCode?.identifier ?? "en"
-
-        switch languageCode {
-        case "zh":
-            // Check for Traditional Chinese (Taiwan)
-            if Locale.current.region?.identifier == "TW" {
-                return tipsZH_TW
-            }
-            return tipsEN
-        case "ko":
-            return tipsKO
-        case "ja":
-            return tipsJA
-        default:
+        // Use preferredLanguages to get the device's language setting
+        // This returns strings like "zh-Hant-TW", "ko-KR", "ja-JP", "en-US"
+        guard let preferredLanguage = Locale.preferredLanguages.first else {
             return tipsEN
         }
+
+        // Check language prefix
+        if preferredLanguage.hasPrefix("zh") {
+            // Check for Traditional Chinese (contains "Hant" or "TW")
+            if preferredLanguage.contains("Hant") || preferredLanguage.contains("TW") || preferredLanguage.contains("HK") {
+                return tipsZH_TW
+            }
+            // For Simplified Chinese, still return English for now
+            return tipsEN
+        } else if preferredLanguage.hasPrefix("ko") {
+            return tipsKO
+        } else if preferredLanguage.hasPrefix("ja") {
+            return tipsJA
+        }
+
+        return tipsEN
     }
 
     private init() {}

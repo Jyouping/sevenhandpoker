@@ -28,8 +28,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Track app launch
         TrackingManager.shared.trackAppLaunch()
 
-        // Set user language property
-        let languageCode = Locale.current.language.languageCode?.identifier ?? "en"
+        // Set user language property using preferredLanguages
+        let languageCode = Locale.preferredLanguages.first ?? "en"
+        print("Language code: \(languageCode)")
 
         // Initialize Google Mobile Ads SDK
         MobileAds.shared.start { _ in

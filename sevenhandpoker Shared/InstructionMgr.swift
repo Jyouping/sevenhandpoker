@@ -81,22 +81,27 @@ class InstructionMgr {
 
     // Get current language texts based on device locale
     var turtorialTexts: [String] {
-        let languageCode = Locale.current.language.languageCode?.identifier ?? "en"
-
-        switch languageCode {
-        case "zh":
-            // Check for Traditional Chinese (Taiwan)
-            if Locale.current.region?.identifier == "TW" {
-                return tutorialTextsZH_TW
-            }
-            return tutorialTextsZH_TW
-        case "ko":
-            return tutorialTextsKO
-        case "ja":
-            return tutorialTextsJA
-        default:
+        // Use preferredLanguages to get the device's language setting
+        // This returns strings like "zh-Hant-TW", "ko-KR", "ja-JP", "en-US"
+        guard let preferredLanguage = Locale.preferredLanguages.first else {
             return tutorialTextsEN
         }
+
+        // Check language prefix
+        if preferredLanguage.hasPrefix("zh") {
+            // Check for Traditional Chinese (contains "Hant" or "TW")
+            if preferredLanguage.contains("Hant") || preferredLanguage.contains("TW") || preferredLanguage.contains("HK") {
+                return tutorialTextsZH_TW
+            }
+            // For Simplified Chinese, still return Traditional Chinese for now
+            return tutorialTextsZH_TW
+        } else if preferredLanguage.hasPrefix("ko") {
+            return tutorialTextsKO
+        } else if preferredLanguage.hasPrefix("ja") {
+            return tutorialTextsJA
+        }
+
+        return tutorialTextsEN
     }
     
     public func getIntructionDialog(scene: SKScene, i : Int) -> DialogBoxView? {
