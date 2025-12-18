@@ -34,10 +34,11 @@ struct AdConfig {
 
 #if DEBUG
     static let interstitialAdUnitId = "ca-app-pub-3940256099942544/4411468910"
+    static let userActionsPerAd = 40          // 每幾個state change 顯示一次廣告
+
 #else
     static let interstitialAdUnitId = "ca-app-pub-4758422912741594/8997400411"
+    static let userActionsPerAd = 10          // 每幾個state change 顯示一次廣告
 #endif
     // Test ad id
-    // MARK: - 廣告顯示邏輯
-    static let userActionsPerAd = 9          // 每幾個state change 顯示一次廣告
 }

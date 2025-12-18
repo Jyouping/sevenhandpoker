@@ -845,6 +845,8 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
 
         // Store winner for later use
         pendingCompareWinner = winner
+        headNodes[0].changeAnimationState(.myTurn)
+        headNodes[1].changeAnimationState(.myTurn)
 
         // make sure DeckConfirmationView is dismissed if there is any to avoid UI bug
         confirmationDidDismiss()
