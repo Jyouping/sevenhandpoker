@@ -108,7 +108,7 @@ class TipManager {
                 return tipsZH_TW
             }
             // For Simplified Chinese, still return English for now
-            return tipsEN
+            return tipsZH_TW
         } else if preferredLanguage.hasPrefix("ko") {
             return tipsKO
         } else if preferredLanguage.hasPrefix("ja") {
