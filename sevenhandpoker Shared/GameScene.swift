@@ -106,8 +106,9 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         let scene = GameScene(size: CGSize(width: 1400, height: 640))
         scene.scaleMode = .aspectFit
         scene.startPlayer = startPlayer
-        //First time user will execute tutorial mode
-        scene.tutorialMode = !UserLocalDataMgr.shared.getTutorialPlayed() ? true: isTutorial;
+        // First time user will execute tutorial mode
+        // scene.tutorialMode = !UserLocalDataMgr.shared.getTutorialPlayed() ? true: isTutorial
+        scene.tutorialMode = isTutorial
         return scene
     }
 
@@ -133,7 +134,7 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         setupLabels()
         setupCommonDeck()
         setupHeads()
-
+        setupAIs()
         currentPhase = .idle
     }
 
@@ -190,6 +191,12 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
             headNodes.append(headNode)
             addChild(headNode)
         }
+    }
+    
+    private func setupAIs() {
+        let level = UserLocalDataMgr.shared.getAiDifficulty()
+        ComputerAI.shared.setLevel(level)
+        print("Set AI level \(level)")
     }
 
     // MARK: - State Entry Handlers
@@ -411,6 +418,35 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
         }
     }
 
+    private func startGlowHighlight(on btn: SKSpriteNode) {
+        // 避免重複加
+        if btn.childNode(withName: "glowHighlight") != nil { return }
+
+        let glow = SKShapeNode(
+            rectOf: btn.size,
+            cornerRadius: 10
+        )
+        glow.name = "glowHighlight"
+        glow.strokeColor = .yellow
+        glow.lineWidth = 4
+        glow.glowWidth = 10
+        glow.zPosition = btn.zPosition - 1
+        glow.alpha = 1.0
+
+        // 呼吸動畫
+        let fadeOut = SKAction.fadeAlpha(to: 0.3, duration: 0.6)
+        let fadeIn  = SKAction.fadeAlpha(to: 1.0, duration: 0.6)
+        let breathe = SKAction.sequence([fadeOut, fadeIn])
+        let loop    = SKAction.repeatForever(breathe)
+
+        glow.run(loop)
+        btn.addChild(glow)
+    }
+    
+    func stopGlowHighlight(on btn: SKSpriteNode) {
+        btn.childNode(withName: "glowHighlight")?.removeFromParent()
+    }
+    
     private func setupButtons() {
         // Deal button
         dealButton = createButton(text: "DEAL", color: .systemGreen)
@@ -457,6 +493,14 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
             btn.zPosition = 100
             addChild(btn)
             placeButtons.append(btn)
+        }
+        if (!tutorialMode) {
+            for i in 0..<7 {
+                stopGlowHighlight(on: placeButtons[i])
+                startGlowHighlight(on: placeButtons[i])
+            }
+        } else {
+            startGlowHighlight(on: placeButtons[0])
         }
 
         // P1 Poker buttons (transparent, for viewing placed cards)
@@ -1146,6 +1190,11 @@ class GameScene: SKScene, CardSpriteDelegate, DeckConfirmationDelegate, HeadFigu
                 // Tutorial finished, game restart
                 tutorialMode = false
                 UserLocalDataMgr.shared.recordTutorialPlayed()
+                
+                for i in 0..<7 {
+                    startGlowHighlight(on: placeButtons[i])
+                }
+                
                 startNewGame()
             }
             if (shouldProceedToNextTurn) {

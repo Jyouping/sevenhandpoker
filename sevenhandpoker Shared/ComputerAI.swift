@@ -18,8 +18,9 @@ class ComputerAI {
 
     // Probability settings
     private let easyToMediumChance: Double = 0.30  // 30% chance Easy uses Medium
-    private let mediumToHardChance: Double = 0.30  // 30% chance Medium uses Hard
-    private let bluffChance: Double = 0.35         // 35% chance Hard will bluff
+    private let mediumToHardChance: Double = 0.50  // 40% chance Medium uses Hard
+    private let bluffChance: Double = 0.30         // 30% chance Hard will bluff
+    private let bestHandChance: Double = 0.30 //30% that medium size use best card
 
     // MARK: - Singleton
 
@@ -105,11 +106,14 @@ class ComputerAI {
         var filledColumns = 0
         var p2WinningColumns: [Int] = []
         var p1WinningColumns: [Int] = []
+        var placedColumns = 0
 
         for col in 0..<7 {
             let p1Cards = DeckMgr.shared.getPokerDeck(player: 1, col: col)
             let p2Cards = DeckMgr.shared.getPokerDeck(player: 2, col: col)
-
+            if !p1Cards.isEmpty || !p2Cards.isEmpty {
+                placedColumns += 1
+            }
             if !p1Cards.isEmpty && !p2Cards.isEmpty {
                 filledColumns += 1
                 let winner = DeckMgr.shared.compareColumn(col)
@@ -150,6 +154,7 @@ class ComputerAI {
             maxP1Consecutive: maxP1Consecutive,
             maxP2Consecutive: maxP2Consecutive,
             filledColumns: filledColumns,
+            placedColumns: placedColumns,
             remainingCards: DeckMgr.shared.getRemainingCards(),
             p1WinningColumns: p1WinningColumns,
             p2WinningColumns: p2WinningColumns
@@ -162,13 +167,14 @@ class ComputerAI {
         let maxP1Consecutive: Int
         let maxP2Consecutive: Int
         let filledColumns: Int
+        let placedColumns: Int
         let remainingCards: Int
         let p1WinningColumns: [Int]
         let p2WinningColumns: [Int]
 
-        var isEarlyGame: Bool { filledColumns <= 2 }
-        var isMidGame: Bool { filledColumns > 2 && filledColumns <= 4 }
-        var isLateGame: Bool { filledColumns > 4 }
+        var isEarlyGame: Bool { filledColumns <= 2 || placedColumns < 3}
+        var isMidGame: Bool { !isEarlyGame && (filledColumns <= 3 || placedColumns < 5)}
+        var isLateGame: Bool { !isEarlyGame && !isMidGame }
         var p2IsWinning: Bool { p2Score > p1Score }
         var p2IsLosing: Bool { p2Score < p1Score }
     }
@@ -373,7 +379,7 @@ class ComputerAI {
         // 2. Random chance kicks in
         // 3. Not in late game when we need real strength
 
-        let hasWeakHand = !analysis.hasTrips && !analysis.hasQuads
+        let hasWeakHand = !analysis.hasTrips && !analysis.hasQuads && !analysis.hasFlushPotential && !analysis.hasTwoPairs
         let randomBluff = Double.random(in: 0...1) < bluffChance
 
         // Don't bluff too much in late game
@@ -466,34 +472,76 @@ class ComputerAI {
 
         // Early/Mid game: Resource management - don't waste best cards
         if gameState.isEarlyGame {
-            selectConservative(deck: deck, analysis: analysis)
+            if Double.random(in: 0...1) < bestHandChance/2.0 {
+                selectBestHand(analysis: analysis)
+            } else {
+                selectConservative(deck: deck, analysis: analysis)
+            }
             return
         }
 
         // Mid game: balanced approach
-        selectBalanced(deck: deck, analysis: analysis)
+        if Double.random(in: 0...1) < bestHandChance {
+            selectBestHand(analysis: analysis)
+        } else {
+            selectBalanced(deck: deck, analysis: analysis)
+        }
     }
 
-    private func selectBestHand(analysis: HandAnalysis) {
-        // Play the absolute best hand available
 
+    private func selectBestHand(analysis: HandAnalysis) {
+        // 撲克牌型優先級（從高到低）：
+        // 1. 同花順 (Straight Flush)
+        // 2. 四條 (Four of a Kind)
+        // 3. 葫蘆 (Full House)
+        // 4. 同花 (Flush)
+        // 5. 順子 (Straight)
+        // 6. 三條 (Three of a Kind)
+        // 7. 兩對 (Two Pair)
+        // 8. 一對 (One Pair)
+        // 9. 高牌 (High Card)
+        
+        // 1. 檢查同花順 (Straight Flush)
+        if let straightFlush = findStraightFlush(analysis: analysis) {
+            selectCardsAnimated(straightFlush)
+            return
+        }
+        
+        // 2. 檢查四條 (Four of a Kind)
         if analysis.hasQuads, let quads = analysis.bestQuads {
             selectCardsAnimated(Array(quads.prefix(4)))
             return
         }
-
+        
+        // 3. 檢查葫蘆 (Full House) - 三條 + 一對
         if analysis.hasTrips, let trips = analysis.bestTrips {
-            // Check if we can make full house
             if let pair = analysis.pairs.first(where: { $0.key != trips.first?.getNumber() }) {
                 var fullHouse = Array(trips.prefix(3))
                 fullHouse.append(contentsOf: pair.value.prefix(2))
                 selectCardsAnimated(fullHouse)
                 return
             }
+        }
+        
+        // 4. 檢查同花 (Flush) - 至少5張同色
+        if let flush = findFlush(analysis: analysis) {
+            selectCardsAnimated(flush)
+            return
+        }
+        
+        // 5. 檢查順子 (Straight) - 至少5張連續
+        if let straight = findStraight(analysis: analysis) {
+            selectCardsAnimated(straight)
+            return
+        }
+        
+        // 6. 檢查三條 (Three of a Kind)
+        if analysis.hasTrips, let trips = analysis.bestTrips {
             selectCardsAnimated(Array(trips.prefix(3)))
             return
         }
-
+        
+        // 7. 檢查兩對 (Two Pair)
         if analysis.hasTwoPairs {
             let sortedPairs = analysis.pairs.sorted { $0.key > $1.key }
             var twoPairs: [CardSprite] = []
@@ -502,27 +550,111 @@ class ComputerAI {
             selectCardsAnimated(twoPairs)
             return
         }
-
+        
+        // 8. 檢查一對 (One Pair)
         if analysis.hasPairs, let pair = analysis.bestPair {
             selectCardsAnimated(Array(pair.prefix(2)))
             return
         }
-
-        // Check flush potential
-        if analysis.hasFlushPotential {
-            if let flushCards = analysis.flushPotential.values.first {
-                let sorted = flushCards.sorted { $0.getNumber() > $1.getNumber() }
-                selectCardsAnimated(Array(sorted.prefix(5)))
-                return
-            }
-        }
-
-        // High card
+        
+        // 9. 高牌 (High Card)
         if let highCard = analysis.highCard {
             selectCardsAnimated([highCard])
         }
     }
 
+    // MARK: - Helper Functions for Card Combinations
+
+    /// 尋找同花順 (Straight Flush) - 同色且連續的5張牌
+    private func findStraightFlush(analysis: HandAnalysis) -> [CardSprite]? {
+        // 對每種顏色檢查是否有順子
+        for (_, cards) in analysis.colorCounts {
+            if cards.count >= 5 {
+                if let straight = findStraightInCards(cards) {
+                    return straight
+                }
+            }
+        }
+        return nil
+    }
+
+    /// 尋找同花 (Flush) - 5張以上同色的牌
+    private func findFlush(analysis: HandAnalysis) -> [CardSprite]? {
+        // 找到最多同色的牌組
+        if let bestFlush = analysis.colorCounts.max(by: { $0.value.count < $1.value.count }) {
+            if bestFlush.value.count >= 5 {
+                // 選擇最大的5張
+                let sorted = bestFlush.value.sorted { $0.getNumber() > $1.getNumber() }
+                return Array(sorted.prefix(5))
+            }
+        }
+        return nil
+    }
+
+    /// 尋找順子 (Straight) - 5張連續的牌
+    private func findStraight(analysis: HandAnalysis) -> [CardSprite]? {
+        return findStraightInCards(analysis.sortedByNumber)
+    }
+
+    /// 在給定的牌中尋找順子
+    private func findStraightInCards(_ cards: [CardSprite]) -> [CardSprite]? {
+        guard cards.count >= 5 else { return nil }
+        
+        // 按數字排序並去重
+        let sortedCards = cards.sorted { $0.getNumber() > $1.getNumber() }
+        var uniqueCards: [CardSprite] = []
+        var seenNumbers = Set<Int>()
+        
+        for card in sortedCards {
+            if !seenNumbers.contains(card.getNumber()) {
+                uniqueCards.append(card)
+                seenNumbers.insert(card.getNumber())
+            }
+        }
+        
+        guard uniqueCards.count >= 5 else { return nil }
+        
+        // 檢查是否有5張連續的牌
+        for i in 0...(uniqueCards.count - 5) {
+            var consecutive: [CardSprite] = [uniqueCards[i]]
+            
+            for j in (i + 1)..<uniqueCards.count {
+                let lastNumber = consecutive.last!.getNumber()
+                let currentNumber = uniqueCards[j].getNumber()
+                
+                // 檢查是否連續（差1）
+                if lastNumber - currentNumber == 1 {
+                    consecutive.append(uniqueCards[j])
+                    
+                    if consecutive.count == 5 {
+                        return consecutive
+                    }
+                } else if lastNumber - currentNumber > 1 {
+                    // 不連續，跳出
+                    break
+                }
+            }
+        }
+        
+        // 特殊情況：A-2-3-4-5 (A 可以當作 1 使用)
+        // 假設 A 的 number 是 14 或 1，根據你的遊戲規則調整
+        if let aceCard = uniqueCards.first(where: { $0.getNumber() == 14 || $0.getNumber() == 1 }) {
+            let lowNumbers = uniqueCards.filter { $0.getNumber() >= 2 && $0.getNumber() <= 5 }
+            if lowNumbers.count >= 4 {
+                let sorted = lowNumbers.sorted { $0.getNumber() < $1.getNumber() }
+                // 檢查是否是 2-3-4-5
+                if sorted.count >= 4 &&
+                   sorted[0].getNumber() == 2 &&
+                   sorted[1].getNumber() == 3 &&
+                   sorted[2].getNumber() == 4 &&
+                   sorted[3].getNumber() == 5 {
+                    return [sorted[0], sorted[1], sorted[2], sorted[3], aceCard]
+                }
+            }
+        }
+        
+        return nil
+    }
     private func selectConservative(deck: [CardSprite], analysis: HandAnalysis) {
         // Early game: save strong cards, play medium strength
 
@@ -629,9 +761,26 @@ class ComputerAI {
             return consecutiveCol
         }
 
-        // Fallback: prefer middle columns for strategic flexibility
-        let middlePreference = availableColumns.sorted { abs($0 - 3) < abs($1 - 3) }
-        return middlePreference.first ?? availableColumns.first ?? 0
+        // Fallback: Strategic column placement based on opponent's card count
+        let opponentCardCount = selectedCards.count
+        
+        if opponentCardCount >= 3 {
+            // 對手出大牌（超過3張），prefer 放在角落減少損失
+            // 優先選擇兩端的列（0 或 6），然後是次外圍（1 或 5）
+            let cornerPreference = availableColumns.sorted {
+                let dist1 = min($0, 6 - $0)  // 到最近邊緣的距離
+                let dist2 = min($1, 6 - $1)
+                return dist1 < dist2  // 距離越小（越靠邊）越優先
+            }
+            return cornerPreference.first ?? availableColumns.first ?? 0
+        } else {
+            // 對手出小牌（2張或以下），prefer 放在中間保持靈活性
+            // 優先選擇中間列（3），然後是附近（2, 4），再外圍（1, 5），最後才是角落（0, 6）
+            let middlePreference = availableColumns.sorted {
+                abs($0 - 3) < abs($1 - 3)
+            }
+            return middlePreference.first ?? availableColumns.first ?? 0
+        }
     }
 
     private func findBlockingColumn(availableColumns: [Int], gameState: GameState) -> Int? {

@@ -25,6 +25,7 @@ class UserLocalDataMgr {
     private let hardLossesKey = "hardLosses"
     
     private let tutorialPlayedKey = "tutorialPlayed"
+    private let aiDifficultyKey = "aiDifficulty"
 
     // MARK: - Init
 
@@ -32,6 +33,15 @@ class UserLocalDataMgr {
 
     // MARK: - Public Methods
 
+    func getAiDifficulty() -> Int {
+        print("AI difficulty : \(userDefaults.integer(forKey: aiDifficultyKey))")
+        return userDefaults.integer(forKey: aiDifficultyKey)
+    }
+    
+    func recordAiDifficulty(difficulty : Int) {
+        userDefaults.set(difficulty, forKey: aiDifficultyKey)
+    }
+    
     func getTutorialPlayed() -> Bool {
         print("Tutorial Played: \(userDefaults.integer(forKey: tutorialPlayedKey))")
         return userDefaults.integer(forKey: tutorialPlayedKey) == 1

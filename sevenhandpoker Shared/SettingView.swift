@@ -209,7 +209,9 @@ class SettingView: SKNode {
             if node.name == "easyButton" || node.parent?.name == "easyButton" {
                 let oldDifficulty = ComputerAI.shared.getLevel()
                 ComputerAI.shared.setLevel(0)
+                UserLocalDataMgr.shared.recordAiDifficulty(difficulty: 0)
                 updateDifficultySelection()
+
                 if oldDifficulty != 0 {
                     TrackingManager.shared.trackDifficultyChanged(from: oldDifficulty, to: 0)
                 }
@@ -217,6 +219,8 @@ class SettingView: SKNode {
             if node.name == "mediumButton" || node.parent?.name == "mediumButton" {
                 let oldDifficulty = ComputerAI.shared.getLevel()
                 ComputerAI.shared.setLevel(1)
+                UserLocalDataMgr.shared.recordAiDifficulty(difficulty: 1)
+
                 updateDifficultySelection()
                 if oldDifficulty != 1 {
                     TrackingManager.shared.trackDifficultyChanged(from: oldDifficulty, to: 1)
@@ -225,6 +229,7 @@ class SettingView: SKNode {
             if node.name == "hardButton" || node.parent?.name == "hardButton" {
                 let oldDifficulty = ComputerAI.shared.getLevel()
                 ComputerAI.shared.setLevel(2)
+                UserLocalDataMgr.shared.recordAiDifficulty(difficulty: 2)
                 updateDifficultySelection()
                 if oldDifficulty != 2 {
                     TrackingManager.shared.trackDifficultyChanged(from: oldDifficulty, to: 2)
